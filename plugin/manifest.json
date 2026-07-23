@@ -4,6 +4,7 @@
   "api": "1.0.0",
   "main": "plugin.js",
   "capabilities": [],
+  "permissions": ["teamlibrary"],
   "enableProposedApi": false,
   "documentAccess": "dynamic-page",
   "editorType": ["figma"],

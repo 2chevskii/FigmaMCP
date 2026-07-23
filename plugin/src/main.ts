@@ -4,6 +4,8 @@ import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from 
 import { nodeMutationHandlers } from "./operations/nodes";
 import { readHandlers, startChangeJournal } from "./operations/read";
 import { OperationError, RpcHandler, RpcPayload } from "./operations/shared";
+import { styleVariableHandlers } from "./operations/styles-variables";
+import { textComponentHandlers } from "./operations/text-components";
 
 figma.showUI(__html__, { width: 360, height: 300, themeColors: true });
 
@@ -51,6 +53,8 @@ async function handleBridgeFrame(bytes: Uint8Array): Promise<void> {
   const handlers: Record<string, RpcHandler> = {
     ...readHandlers,
     ...nodeMutationHandlers,
+    ...textComponentHandlers,
+    ...styleVariableHandlers,
   };
   const handler: RpcHandler | undefined = request.method ? handlers[request.method] : undefined;
   if (!handler) {
