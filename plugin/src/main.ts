@@ -1,105 +1,138 @@
 import { Envelope, now, pack, PROTOCOL_VERSION, unpack } from "./bridge/protocol";
+import { DEFAULT_PORT, PLUGIN_VERSION, PORT_STORAGE_KEY } from "./config";
+import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from "./messages";
 
-type UiMessage =
-  | { type: "config_loaded"; port: number }
-  | { type: "set_port"; port: number }
-  | { type: "close_plugin" }
-  | { type: "bridge_frame"; bytes: Uint8Array }
-  | { type: "context_dirty" };
-const key = "figma-mcp-port";
+const GET_DOCUMENT_METADATA = "get_document_metadata";
+
 figma.showUI(__html__, { width: 360, height: 240, themeColors: true });
+
 void loadConfig();
-figma.on("currentpagechange", () =>
-  figma.ui.postMessage({ type: "context_dirty", context: connectionContext() }),
-);
-figma.on("selectionchange", () => undefined);
-figma.ui.onmessage = (message: UiMessage) => {
-  if (message.type === "set_port") {
-    void figma.clientStorage.setAsync(key, message.port);
-    return;
-  }
-  if (message.type === "close_plugin") {
-    figma.closePlugin();
-    return;
-  }
-  if (message.type === "bridge_frame") {
-    void handleRequest(message.bytes);
-  }
-};
+figma.on("currentpagechange", notifyContextChanged);
+figma.ui.onmessage = handleUiMessage;
+
 async function loadConfig(): Promise<void> {
-  const value = await figma.clientStorage.getAsync(key);
-  figma.ui.postMessage({
+  const storedPort: unknown = await figma.clientStorage.getAsync(PORT_STORAGE_KEY);
+  postToUi({
     type: "config_loaded",
-    port: typeof value === "number" ? value : 3846,
-    context: connectionContext(),
+    port: typeof storedPort === "number" ? storedPort : DEFAULT_PORT,
+    context: readConnectionContext(),
   });
 }
-async function handleRequest(bytes: Uint8Array): Promise<void> {
+
+function handleUiMessage(message: UiToControllerMessage): void {
+  switch (message.type) {
+    case "set_port":
+      void figma.clientStorage.setAsync(PORT_STORAGE_KEY, message.port);
+      break;
+    case "close_plugin":
+      figma.closePlugin();
+      break;
+    case "bridge_frame":
+      handleBridgeFrame(message.bytes);
+      break;
+  }
+}
+
+function handleBridgeFrame(bytes: Uint8Array): void {
   let request: Envelope;
+
   try {
     request = unpack(bytes);
   } catch {
     return;
   }
-  if (
-    request.type !== "request" ||
-    request.method !== "get_document_metadata" ||
-    !request.connection_id ||
-    !request.request_id
-  )
+
+  if (request.type !== "request" || !request.connection_id || !request.request_id) {
     return;
+  }
+
+  if (request.method !== GET_DOCUMENT_METADATA) {
+    respondWithError(
+      request,
+      "method_not_found",
+      `Unsupported bridge method: ${request.method ?? "(missing)"}.`,
+    );
+    return;
+  }
+
   try {
-    const response: Envelope = {
+    respond({
       type: "response",
       protocol_version: PROTOCOL_VERSION,
       connection_id: request.connection_id,
       request_id: request.request_id,
       sent_at: now(),
-      payload: { connection_id: request.connection_id, ...metadata() },
-    };
-    figma.ui.postMessage({ type: "bridge_frame", bytes: pack(response) });
+      payload: {
+        connection_id: request.connection_id,
+        ...readDocumentMetadata(),
+      },
+    });
   } catch {
-    const response: Envelope = {
-      type: "error",
-      protocol_version: PROTOCOL_VERSION,
-      connection_id: request.connection_id,
-      request_id: request.request_id,
-      sent_at: now(),
-      error: { code: "figma_api_error", message: "Unable to read document metadata." },
-    };
-    figma.ui.postMessage({ type: "bridge_frame", bytes: pack(response) });
+    respondWithError(request, "figma_api_error", "Unable to read document metadata.");
   }
 }
-function metadata(): Record<string, unknown> {
-  const root = figma.root;
+
+function respondWithError(request: Envelope, code: string, message: string): void {
+  respond({
+    type: "error",
+    protocol_version: PROTOCOL_VERSION,
+    connection_id: request.connection_id,
+    request_id: request.request_id,
+    sent_at: now(),
+    error: { code, message },
+  });
+}
+
+function respond(envelope: Envelope): void {
+  postToUi({ type: "bridge_frame", bytes: pack(envelope) });
+}
+
+function readDocumentMetadata(): Record<string, unknown> {
+  const document = figma.root;
+  const currentPage = figma.currentPage;
+
   return {
-    connection_id: "",
     document: {
-      name: root.name,
-      type: root.type,
-      color_profile: root.documentColorProfile,
-      page_count: root.children.length,
-      pages: root.children.map((page) => ({ id: page.id, name: page.name })),
+      name: document.name,
+      type: document.type,
+      color_profile: document.documentColorProfile,
+      page_count: document.children.length,
+      pages: document.children.map((page) => ({ id: page.id, name: page.name })),
     },
     current_page: {
-      id: figma.currentPage.id,
-      name: figma.currentPage.name,
-      top_level_node_count: figma.currentPage.children.length,
+      id: currentPage.id,
+      name: currentPage.name,
+      top_level_node_count: currentPage.children.length,
     },
-    selection: figma.currentPage.selection.map((node) => ({
+    selection: currentPage.selection.map((node) => ({
       id: node.id,
       name: node.name,
       type: node.type,
     })),
-    editor: { type: figma.editorType, mode: figma.mode },
+    editor: {
+      type: figma.editorType,
+      mode: figma.mode,
+    },
   };
 }
-function connectionContext(): Record<string, unknown> {
+
+function readConnectionContext(): ConnectionContext {
   return {
-    plugin_version: "0.1.0",
+    plugin_version: PLUGIN_VERSION,
     editor_type: figma.editorType,
     mode: figma.mode,
     document_name: figma.root.name,
-    current_page: { id: figma.currentPage.id, name: figma.currentPage.name },
+    current_page: {
+      id: figma.currentPage.id,
+      name: figma.currentPage.name,
+    },
   };
+}
+
+function notifyContextChanged(): void {
+  postToUi({ type: "context_dirty", context: readConnectionContext() });
+}
+
+function postToUi(message: ControllerToUiMessage): void {
+  figma.ui.postMessage(message);
 }
