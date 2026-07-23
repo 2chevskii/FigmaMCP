@@ -6,8 +6,11 @@ This repository connects MCP clients to documents that are currently open in Fig
 - a Figma development plugin in `plugin/`;
 - a MessagePack WebSocket bridge between them.
 
-The current milestone supports connection discovery and bounded document metadata. It does not mutate
-Figma documents or traverse complete scene trees.
+The connector exposes the public Figma Plugin API surface that is useful in the Figma Design editor:
+bounded document and scene-tree reads, native node creation and mutation, text and components, styles
+and variables, assets and exports, prototyping, annotations, file state, and the beta Motion API.
+FigJam, Slides, Buzz, codegen, text-review, payments, and private/partner APIs are intentionally out of
+scope.
 
 ## Prerequisites
 
@@ -65,8 +68,10 @@ Configure the client to use Streamable HTTP at:
 http://127.0.0.1:3846/mcp
 ```
 
-Call `list_figma_connections` first. Choose a live `connection_id`, then pass it explicitly to
-`get_figma_document_metadata`. Connection IDs identify plugin invocations, not permanent Figma files.
+Call `list_figma_connections` first. Choose a live `connection_id`, call
+`get_figma_capabilities`, then pass the ID explicitly to every document-specific tool. Connection IDs
+identify plugin invocations, not permanent Figma files. See the [tool reference](TOOLS.md) for the
+complete catalog and request shapes.
 
 ## Troubleshooting
 
@@ -79,7 +84,7 @@ Call `list_figma_connections` first. Choose a live `connection_id`, then pass it
 
 ### The server reports an invalid bridge message
 
-The bridge accepts only binary MessagePack frames using subprotocol `figma-mcp-bridge.v1`. Payload
+The bridge accepts only binary MessagePack frames using subprotocol `figma-mcp-bridge.v2`. Payload
 fields use snake_case, including `current_page`.
 
 ### The requested connection is missing
@@ -91,4 +96,5 @@ replace the live socket while retaining the same invocation ID.
 
 - [Architecture](ARCHITECTURE.md)
 - [Development](DEVELOPMENT.md)
+- [Figma Design tool reference](TOOLS.md)
 - [Figma Plugin API tool coverage proposal](PLUGIN_API_TOOL_COVERAGE.md)

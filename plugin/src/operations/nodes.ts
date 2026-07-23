@@ -352,14 +352,30 @@ async function combineNodes(payload: RpcPayload): Promise<RpcResult> {
     optionalString(payload, "parent_id") ?? nodes[0]?.parent?.id ?? figma.currentPage.id,
   );
   const index = optionalNumber(payload, "index", { integer: true, min: 0 });
+  if (operation === "transform_group") {
+    const children = asApiRecord(parent).children as readonly SceneNode[];
+    const modifiers = payload.modifiers;
+    if (!Array.isArray(modifiers) || modifiers.length !== nodes.length) {
+      throw new OperationError(
+        "invalid_argument",
+        "transform_group requires one modifier per node.",
+      );
+    }
+    const result = callSynchronous("transformGroup", [
+      nodes,
+      parent,
+      Math.min(index ?? children.length, children.length),
+      modifiers,
+    ]) as BaseNode;
+    return { operation, node: nodeSummary(result) };
+  }
   const args: unknown[] = [nodes, parent];
-  if (index !== undefined && (operation === "group" || operation === "transform_group")) {
+  if (index !== undefined && operation === "group") {
     args.push(index);
   }
 
   const method: Record<string, string> = {
     group: "group",
-    transform_group: "transformGroup",
     flatten: "flatten",
     combine_as_variants: "combineAsVariants",
     union: "union",

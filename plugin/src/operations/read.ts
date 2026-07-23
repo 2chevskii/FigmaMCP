@@ -225,9 +225,13 @@ type JournalEntry = {
 };
 
 const journal: JournalEntry[] = [];
+const loadedPageIds = new Set<string>();
 let nextCursor = 1;
 
 export function startChangeJournal(): void {
+  loadedPageIds.add(figma.currentPage.id);
+  // The connector intentionally journals only explicitly loaded pages.
+  // eslint-disable-next-line @figma/figma-plugins/dynamic-page-documentchange-event-advice
   figma.on("documentchange", (event) => {
     appendChange("documentchange", {
       changes: event.documentChanges.map((change) => toSerializable(change)),
@@ -306,6 +310,9 @@ function getCapabilities(): RpcResult {
       "SLICE",
       "STAR",
       "TEXT",
+      "TEXT_PATH",
+      "SLOT",
+      "TRANSFORM_GROUP",
       "VECTOR",
     ],
     optional_apis: {
@@ -313,8 +320,8 @@ function getCapabilities(): RpcResult {
       motion: typeof api.motion === "object",
       team_library: typeof api.teamLibrary === "object",
       variables: typeof api.variables === "object",
-      shaders: typeof api.getAvailableShadersAsync === "function",
-      brushes: typeof api.loadBrushAsync === "function",
+      shaders: typeof api.listAvailableShaders === "function",
+      brushes: typeof api.loadBrushesAsync === "function",
     },
     limits: {
       bridge_message_bytes: 16 * 1024 * 1024,
@@ -364,7 +371,7 @@ function listPages(payload: RpcPayload): RpcResult {
       id: page.id,
       name: page.name,
       type: page.type,
-      loaded: page === figma.currentPage || page.children.length > 0,
+      loaded: loadedPageIds.has(page.id),
     })),
     next_cursor: next < figma.root.children.length ? next : null,
   };
@@ -377,6 +384,7 @@ async function loadPage(payload: RpcPayload): Promise<RpcResult> {
     throw new OperationError("page_not_found", `No page exists for id ${pageId}.`);
   }
   await page.loadAsync();
+  loadedPageIds.add(page.id);
   return { page: { id: page.id, name: page.name }, loaded: true };
 }
 
@@ -406,6 +414,7 @@ async function setCurrentPage(payload: RpcPayload): Promise<RpcResult> {
     throw new OperationError("page_not_found", `No page exists for id ${pageId}.`);
   }
   await figma.setCurrentPageAsync(page);
+  loadedPageIds.add(page.id);
   return { page: { id: page.id, name: page.name } };
 }
 
@@ -451,6 +460,8 @@ async function queryNodes(payload: RpcPayload): Promise<RpcResult> {
   const fields = requestedFields(payload);
   const matches: SceneNode[] = [];
 
+  // The root is the current page or a caller-selected, explicitly loaded subtree.
+  // eslint-disable-next-line @figma/figma-plugins/dynamic-page-find-method-advice
   root.findAll((node) => {
     if (matches.length >= resultLimit) {
       return false;

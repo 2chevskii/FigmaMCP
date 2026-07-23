@@ -95,5 +95,6 @@ public sealed class FigmaToolsRegistrationTests
         };
 
         Assert.All(expectedNames, name => Assert.Contains(name, registeredNames));
+        Assert.Equal(expectedNames.Length, registeredNames.Count);
     }
 }

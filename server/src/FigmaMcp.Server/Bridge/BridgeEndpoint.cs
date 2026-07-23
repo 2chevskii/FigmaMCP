@@ -281,7 +281,7 @@ public static class BridgeEndpoint
         return MessagePackSerializer.Serialize(
             new Dictionary<string, object>
             {
-                ["server_version"] = "0.1.0",
+                ["server_version"] = "0.2.0",
                 ["request_timeout_ms"] = (int)BridgeProtocol.RequestTimeout.TotalMilliseconds,
                 ["max_message_bytes"] = BridgeProtocol.MaxMessageBytes,
             },

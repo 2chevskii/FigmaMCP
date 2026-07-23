@@ -103,7 +103,7 @@ async function createStyle(payload: RpcPayload): Promise<RpcResult> {
   if (payload.description !== undefined) {
     style.description = requiredString(payload, "description");
   }
-  applyStyleValue(kind, style, payload);
+  await applyStyleValue(kind, style, payload);
   return { style: projectStyle(kind, style) };
 }
 
@@ -119,7 +119,7 @@ async function updateStyle(payload: RpcPayload): Promise<RpcResult> {
   if (payload.description !== undefined) {
     style.description = requiredString(payload, "description");
   }
-  applyStyleValue(kind, style, payload);
+  await applyStyleValue(kind, style, payload);
   return { style: projectStyle(kind, style) };
 }
 
@@ -400,7 +400,11 @@ async function listTeamLibraryAssets(payload: RpcPayload): Promise<RpcResult> {
   throw new OperationError("invalid_argument", `Unknown team-library operation ${operation}.`);
 }
 
-function applyStyleValue(kind: StyleKind, style: BaseStyle, payload: RpcPayload): void {
+async function applyStyleValue(
+  kind: StyleKind,
+  style: BaseStyle,
+  payload: RpcPayload,
+): Promise<void> {
   const api = asApiRecord(style);
   const fields: Record<StyleKind, string[]> = {
     paint: ["paints"],
@@ -421,6 +425,10 @@ function applyStyleValue(kind: StyleKind, style: BaseStyle, payload: RpcPayload)
   for (const property of fields[kind]) {
     const input = property.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`);
     if (payload[input] !== undefined && property in api) {
+      if (property === "fontName") {
+        const font = payload[input] as FontName;
+        await figma.loadFontAsync(font);
+      }
       api[property] = payload[input];
     }
   }

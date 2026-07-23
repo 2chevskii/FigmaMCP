@@ -29,18 +29,15 @@ TypeScript property. The Plugin API contains hundreds of node properties. A smal
 composable, typed, bounded tools gives complete practical coverage without producing an unusable MCP
 tool list.
 
-## Current coverage
+## Implementation status
 
-The server currently exposes:
+The Figma Design portion of this proposal is implemented in connector version 0.2.0. The complete
+registered catalog and input conventions are documented in [TOOLS.md](TOOLS.md).
 
-| MCP tool                      | Plugin API coverage                                                           |
-| ----------------------------- | ----------------------------------------------------------------------------- |
-| `list_figma_connections`      | Live connector instances and cached editor/document/page context              |
-| `get_figma_document_metadata` | Root metadata, page summaries, current page, selection summaries, editor mode |
-
-This is intentionally only a connectivity and metadata slice. It does not yet cover scene-tree
-queries, node properties, binary assets, styles, variables, libraries, exports, mutations, editor
-control, or editor-specific APIs.
+The implementation intentionally excludes the editor-specific tools in section 11, the
+invocation-driven/product-management APIs in section 12, private/partner-only APIs, and unrestricted
+network or JavaScript execution. Measurement reads are available in Design; measurement mutations
+return `unsupported_in_editor` because Figma exposes those writes only in Dev Mode.
 
 ## Design principles for the expanded surface
 

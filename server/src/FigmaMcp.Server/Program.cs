@@ -4,7 +4,7 @@ using FigmaMcp.Server.Mcp;
 using FigmaMcp.Server.Options;
 
 const string ProductName = "figma-mcp-server";
-const string ProductVersion = "0.1.0";
+const string ProductVersion = "0.2.0";
 
 if (!ServerOptions.TryParse(args, out var parsedOptions, out var error))
 {

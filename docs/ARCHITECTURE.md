@@ -27,7 +27,7 @@ The controller and UI exchange typed messages through Figma's `postMessage` brid
 ## Connection lifecycle
 
 1. The plugin UI creates one invocation UUID.
-2. It opens `/bridge` with subprotocol `figma-mcp-bridge.v1`.
+2. It opens `/bridge` with subprotocol `figma-mcp-bridge.v2`.
 3. It sends `hello` within five seconds.
 4. The server validates the payload and installs the connection in the registry.
 5. The server replies with `hello_ack`.
@@ -47,8 +47,17 @@ Each WebSocket message contains one MessagePack map in a binary frame. The share
 - `sent_at`
 - optional `connection_id`, `request_id`, `method`, `payload`, and `error`
 
-Messages are limited to 1 MiB. UUIDs use lowercase canonical form and timestamps use UTC ISO-8601.
-Payload property names use snake_case.
+Messages are limited to 16 MiB. UUIDs use lowercase canonical form and timestamps use UTC ISO-8601.
+Payload property names use snake_case. Requests carry one allowlisted operation name and an explicit
+structured payload; the plugin does not expose JavaScript evaluation or arbitrary property
+reflection.
+
+The server serializes operations per live connection. Each request has a 30-second deadline. Mutation
+payloads can carry `dry_run` and `idempotency_key`; the plugin retains the 200 most recent results per
+invocation so a retry can return the original result without replaying the write.
+
+Binary image, video, and export data is base64 encoded within the structured response and capped at
+12 MiB, leaving envelope overhead below the transport ceiling.
 
 ## Local security boundary
 

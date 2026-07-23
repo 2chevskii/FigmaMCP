@@ -49,7 +49,7 @@ Run from `server/`:
 ```powershell
 dotnet format FigmaMcp.slnx --verify-no-changes --no-restore
 dotnet build FigmaMcp.slnx --configuration Release
-dotnet test --solution FigmaMcp.slnx --configuration Release
+dotnet run --project tests/FigmaMcp.Server.Tests --configuration Release -- --no-progress
 ```
 
 The solution uses the .NET 10 Microsoft.Testing.Platform runner selected in `server/global.json`.
