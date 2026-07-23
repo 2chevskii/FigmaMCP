@@ -11,7 +11,6 @@ if (!ServerOptions.TryParse(args, out var options, out var error))
 
 var builder = WebApplication.CreateSlimBuilder();
 builder.WebHost.UseUrls($"http://127.0.0.1:{options!.Port}");
-builder.Services.AddSingleton(options);
 builder.Services.AddHealthChecks();
 builder.Services.AddSingleton<PluginConnectionRegistry>();
 builder.Services.AddMcpServer(server =>
@@ -32,14 +31,14 @@ app.Use(async (context, next) =>
 });
 app.MapMcp("/mcp");
 app.Map("/bridge", BridgeEndpoint.HandleAsync);
-app.MapGet("/health", (ServerOptions settings, PluginConnectionRegistry registry) => Results.Json(new
+app.MapGet("/health", (PluginConnectionRegistry registry) => Results.Json(new
 {
     service = "figma-mcp-server",
     version = "0.1.0",
     bridge_protocol_version = 1,
     mcp_endpoint = "/mcp",
     bridge_endpoint = "/bridge",
-    port = settings.Port,
+    port = options.Port,
     uptime_seconds = (long)(DateTimeOffset.UtcNow - ProcessStart.UtcNow).TotalSeconds,
     connected_plugins = registry.Count
 }));
