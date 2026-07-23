@@ -91,3 +91,4 @@ replace the live socket while retaining the same invocation ID.
 
 - [Architecture](ARCHITECTURE.md)
 - [Development](DEVELOPMENT.md)
+- [Figma Plugin API tool coverage proposal](PLUGIN_API_TOOL_COVERAGE.md)
