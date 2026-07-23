@@ -12,6 +12,6 @@ Publish a self-contained Windows executable from `server/` with `dotnet publish 
 
 Run `npm install`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` in `plugin/`. The build writes `plugin/dist/manifest.json`, `plugin/dist/plugin.js`, and `plugin/dist/ui.html`; import the generated manifest in Figma Desktop as a development plugin and open it in each document. The controller bundle installs a UTF-8 encoding fallback before loading MessagePack because the Figma plugin sandbox lacks `TextEncoder` and `TextDecoder`; its UI also falls back to a UUID v4 when `crypto.randomUUID` is unavailable. The UI persists its port and reconnects with bounded jittered backoff.
 
-The local bridge requires `figma-mcp-bridge.v1` and MessagePack binary frames. It is bound only to `127.0.0.1`; the server rejects unexpected Hosts, browser origins at `/mcp`, unsupported bridge origins, text frames, and messages over 1 MiB.
+The local bridge requires `figma-mcp-bridge.v1` and MessagePack binary frames. It is bound only to `127.0.0.1`; the server rejects unexpected Hosts, browser origins at `/mcp`, unsupported bridge origins, text frames, messages over 1 MiB, and malformed handshake/context payloads. Plugin payload property names are snake_case, including `current_page`.
 
 Call `list_figma_connections` before document work and explicitly pass the live `connection_id` to `get_figma_document_metadata`.

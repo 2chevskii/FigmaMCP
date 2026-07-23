@@ -6,6 +6,7 @@ namespace FigmaMcp.Server.Bridge;
 
 public static class BridgeEndpoint
 {
+    private static readonly JsonSerializerOptions PayloadJsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
     public static async Task HandleAsync(HttpContext context, PluginConnectionRegistry registry, ILoggerFactory loggerFactory, IHostApplicationLifetime lifetime)
     {
         var logger = loggerFactory.CreateLogger("Bridge");
@@ -51,8 +52,23 @@ public static class BridgeEndpoint
         return BridgeEnvelopeCodec.Decode(stream.ToArray());
     }
     private static bool IsValidOrigin(string? origin) => string.IsNullOrEmpty(origin) || string.Equals(origin, "null", StringComparison.Ordinal);
-    private static HelloPayload ReadHello(ReadOnlyMemory<byte> raw) => JsonSerializer.Deserialize<HelloPayload>(MessagePack.MessagePackSerializer.ConvertToJson(raw, MessagePack.MessagePackSerializerOptions.Standard.WithSecurity(MessagePack.MessagePackSecurity.UntrustedData))) ?? throw new BridgeProtocolException("Invalid hello payload.");
-    private static ContextPayload ReadContext(ReadOnlyMemory<byte> raw) => JsonSerializer.Deserialize<ContextPayload>(MessagePack.MessagePackSerializer.ConvertToJson(raw, MessagePack.MessagePackSerializerOptions.Standard.WithSecurity(MessagePack.MessagePackSecurity.UntrustedData))) ?? throw new BridgeProtocolException("Invalid context payload.");
+    private static HelloPayload ReadHello(ReadOnlyMemory<byte> raw)
+    {
+        var payload = DeserializePayload<HelloPayload>(raw, "hello");
+        ValidateContext(payload.PluginVersion, payload.EditorType, payload.Mode, payload.DocumentName, payload.CurrentPage, "hello");
+        return payload;
+    }
+    private static ContextPayload ReadContext(ReadOnlyMemory<byte> raw)
+    {
+        var payload = DeserializePayload<ContextPayload>(raw, "context_changed");
+        ValidateContext(null, payload.EditorType, payload.Mode, payload.DocumentName, payload.CurrentPage, "context_changed");
+        return payload;
+    }
+    private static T DeserializePayload<T>(ReadOnlyMemory<byte> raw, string type) => JsonSerializer.Deserialize<T>(MessagePack.MessagePackSerializer.ConvertToJson(raw, MessagePack.MessagePackSerializerOptions.Standard.WithSecurity(MessagePack.MessagePackSecurity.UntrustedData)), PayloadJsonOptions) ?? throw new BridgeProtocolException($"Invalid {type} payload.");
+    private static void ValidateContext(string? pluginVersion, string? editorType, string? mode, string? documentName, PagePayload? currentPage, string type)
+    {
+        if (string.IsNullOrWhiteSpace(editorType) || string.IsNullOrWhiteSpace(mode) || documentName is null || currentPage is null || string.IsNullOrWhiteSpace(currentPage.Id) || currentPage.Name is null || (pluginVersion is not null && string.IsNullOrWhiteSpace(pluginVersion))) throw new BridgeProtocolException($"Invalid {type} payload.");
+    }
     private static ReadOnlyMemory<byte> AckPayload() => MessagePack.MessagePackSerializer.Serialize(new Dictionary<string, object> { ["server_version"] = "0.1.0", ["request_timeout_ms"] = 10000, ["max_message_bytes"] = BridgeEnvelopeCodec.MaxMessageBytes }, MessagePack.MessagePackSerializerOptions.Standard.WithSecurity(MessagePack.MessagePackSecurity.UntrustedData));
     private sealed record PagePayload(string Id, string Name);
     private sealed record HelloPayload(string PluginVersion, string EditorType, string Mode, string DocumentName, PagePayload CurrentPage);
