@@ -1,7 +1,8 @@
 import { Envelope, isPort, now, pack, PROTOCOL_VERSION, unpack } from "./bridge/protocol";
+import { createConnectionId } from "./bridge/uuid";
 type State = "loading_config" | "disconnected" | "connecting" | "connected" | "reconnecting" | "invalid_port" | "protocol_error";
 const port = document.querySelector<HTMLInputElement>("#port")!; const state = document.querySelector<HTMLDivElement>("#state")!; const details = document.querySelector<HTMLDivElement>("#details")!; const error = document.querySelector<HTMLDivElement>("#error")!;
-let socket: WebSocket | undefined; let stopped = false; let reconnect = 0; let timer: number | undefined; const connectionId = crypto.randomUUID(); let configuredPort = 3846; let summary: Record<string, unknown> = { plugin_version: "0.1.0", editor_type: "figma", mode: "default", document_name: "Loading…", current_page: { id: "", name: "Loading…" } };
+let socket: WebSocket | undefined; let stopped = false; let reconnect = 0; let timer: number | undefined; const connectionId = createConnectionId(); let configuredPort = 3846; let summary: Record<string, unknown> = { plugin_version: "0.1.0", editor_type: "figma", mode: "default", document_name: "Loading…", current_page: { id: "", name: "Loading…" } };
 function post(message: object): void { parent.postMessage({ pluginMessage: message }, "*"); }
 function setState(value: State, message = ""): void { state.textContent = value; error.textContent = message; }
 function connect(): void {
