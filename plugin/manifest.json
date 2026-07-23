@@ -1,0 +1,19 @@
+{
+  "name": "figma-mcp-connector",
+  "id": "1662099735060529763",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": [
+    "figma"
+  ],
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": [
+      "*"
+    ],
+    "reasoning": "Connects to a user-configured local companion server port used to expose the currently open Figma document through MCP."
+  }
+}
