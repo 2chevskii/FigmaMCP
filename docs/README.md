@@ -1,17 +1,93 @@
 # Figma MCP connector
 
-This repository provides a local .NET companion in `server/` and a Figma plugin in `plugin/`. It exposes connection discovery and bounded document metadata only; it does not mutate Figma or traverse scene trees.
+This repository connects MCP clients to documents that are currently open in Figma. It consists of:
 
-## Run
+- a local .NET companion server in `server/`;
+- a Figma development plugin in `plugin/`;
+- a MessagePack WebSocket bridge between them.
 
-Install the .NET 10.0.302 SDK, then run `dotnet run --project src/FigmaMcp.Server -- --port 3846` from `server/`. Configure an MCP client with `http://127.0.0.1:3846/mcp`; health is at `http://127.0.0.1:3846/health`.
+The current milestone supports connection discovery and bounded document metadata. It does not mutate
+Figma documents or traverse complete scene trees.
 
-Publish a self-contained Windows executable from `server/` with `dotnet publish src/FigmaMcp.Server -p:PublishProfile=win-x64`.
+## Prerequisites
 
-## Plugin
+- Windows x64
+- .NET SDK 10.0.302
+- Node.js with npm
+- Figma Desktop
 
-Run `npm install`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` in `plugin/`. The build writes `plugin/dist/manifest.json`, `plugin/dist/plugin.js`, and `plugin/dist/ui.html`; import the generated manifest in Figma Desktop as a development plugin and open it in each document. The controller bundle installs a UTF-8 encoding fallback before loading MessagePack because the Figma plugin sandbox lacks `TextEncoder` and `TextDecoder`; its UI also falls back to a UUID v4 when `crypto.randomUUID` is unavailable. The UI persists its port and reconnects with bounded jittered backoff.
+## Start the companion server
 
-The local bridge requires `figma-mcp-bridge.v1` and MessagePack binary frames. It is bound only to `127.0.0.1`; the server rejects unexpected Hosts, browser origins at `/mcp`, unsupported bridge origins, text frames, messages over 1 MiB, and malformed handshake/context payloads. Plugin payload property names are snake_case, including `current_page`.
+From `server/`:
 
-Call `list_figma_connections` before document work and explicitly pass the live `connection_id` to `get_figma_document_metadata`.
+```powershell
+dotnet run --project src/FigmaMcp.Server -- --port 3846
+```
+
+The server listens only on the IPv4 loopback interface:
+
+| Endpoint      | URL                            |
+| ------------- | ------------------------------ |
+| MCP           | `http://127.0.0.1:3846/mcp`    |
+| Plugin bridge | `ws://127.0.0.1:3846/bridge`   |
+| Health        | `http://127.0.0.1:3846/health` |
+
+Keep the process running while using the plugin. Pass a different port with `--port`; valid values are
+from `1` through `65535`.
+
+## Build and load the Figma plugin
+
+From `plugin/`:
+
+```powershell
+npm install
+npm run build
+```
+
+The build writes these generated files:
+
+```text
+plugin/dist/
+├── manifest.json
+├── plugin.js
+└── ui.html
+```
+
+In Figma Desktop, import `plugin/dist/manifest.json` as a development plugin. Open the plugin in each
+document that should be visible to MCP clients. The plugin UI defaults to port `3846` and persists a
+custom port locally.
+
+## Configure an MCP client
+
+Configure the client to use Streamable HTTP at:
+
+```text
+http://127.0.0.1:3846/mcp
+```
+
+Call `list_figma_connections` first. Choose a live `connection_id`, then pass it explicitly to
+`get_figma_document_metadata`. Connection IDs identify plugin invocations, not permanent Figma files.
+
+## Troubleshooting
+
+### The plugin cannot connect
+
+1. Confirm the companion process is still running.
+2. Open `http://127.0.0.1:3846/health`.
+3. Confirm the port in the plugin UI matches the server port.
+4. Rebuild the plugin and reload it in Figma after source changes.
+
+### The server reports an invalid bridge message
+
+The bridge accepts only binary MessagePack frames using subprotocol `figma-mcp-bridge.v1`. Payload
+fields use snake_case, including `current_page`.
+
+### The requested connection is missing
+
+Reopen the plugin in the target document and call `list_figma_connections` again. A reconnect can
+replace the live socket while retaining the same invocation ID.
+
+## More documentation
+
+- [Architecture](ARCHITECTURE.md)
+- [Development](DEVELOPMENT.md)
