@@ -17,9 +17,15 @@ public sealed class FigmaTools
     {
         connections = _registry.Snapshot().Select(connection => new
         {
-            connection_id = connection.ConnectionId.ToString("D"), plugin_version = connection.PluginVersion, protocol_version = connection.ProtocolVersion,
-            document_name = connection.DocumentName, current_page = new { id = connection.CurrentPageId, name = connection.CurrentPageName },
-            editor_type = connection.EditorType, mode = connection.Mode, connected_at = connection.ConnectedAt, last_seen_at = connection.LastSeenAt
+            connection_id = connection.ConnectionId.ToString("D"),
+            plugin_version = connection.PluginVersion,
+            protocol_version = connection.ProtocolVersion,
+            document_name = connection.DocumentName,
+            current_page = new { id = connection.CurrentPageId, name = connection.CurrentPageName },
+            editor_type = connection.EditorType,
+            mode = connection.Mode,
+            connected_at = connection.ConnectedAt,
+            last_seen_at = connection.LastSeenAt
         }).ToArray()
     };
 

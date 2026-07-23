@@ -4,7 +4,10 @@ import test from "node:test";
 import vm from "node:vm";
 
 test("encoding fallback supports MessagePack's large UTF-8 strings", async () => {
-  const source = await readFile(new URL("../src/figma-encoding-polyfill.js", import.meta.url), "utf8");
+  const source = await readFile(
+    new URL("../src/figma-encoding-polyfill.js", import.meta.url),
+    "utf8",
+  );
   const sandbox = { Uint8Array, ArrayBuffer };
   sandbox.globalThis = sandbox;
   vm.runInNewContext(source, sandbox);

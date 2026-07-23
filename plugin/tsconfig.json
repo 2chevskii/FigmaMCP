@@ -1,21 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": [
-      "es2020",
-      "dom"
-    ],
+    "lib": ["es2020", "dom"],
     "strict": true,
     "noEmit": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "skipLibCheck": true,
-    "types": [
-      "@figma/plugin-typings"
-    ]
+    "types": ["@figma/plugin-typings"]
   },
   "include": ["./src/**/*.ts"],
-  "exclude": [
-    "./node_modules"
-  ]
+  "exclude": ["./node_modules"]
 }

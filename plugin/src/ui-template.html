@@ -1,1 +1,53 @@
-<!doctype html><html><head><meta charset="utf-8"><style>body{font:12px Inter,sans-serif;margin:16px;color:#222}h1{font-size:16px;margin:0 0 14px}label{display:block;margin-bottom:5px}input{width:90px;padding:6px}button{padding:6px 9px;margin-right:6px}#state{margin:12px 0;font-weight:600}#details,#error{word-break:break-word;color:#555;margin-top:6px}#error{color:#b42318}</style></head><body><h1>Figma MCP Connector</h1><label>Companion port <input id="port" inputmode="numeric" value="3846"></label><p><button id="save">Save / reconnect</button><button id="close">Close</button></p><div id="state">loading_config</div><div id="details"></div><div id="error"></div><!-- UI_SCRIPT --></body></html>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font:
+          12px Inter,
+          sans-serif;
+        margin: 16px;
+        color: #222;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 14px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      input {
+        width: 90px;
+        padding: 6px;
+      }
+      button {
+        padding: 6px 9px;
+        margin-right: 6px;
+      }
+      #state {
+        margin: 12px 0;
+        font-weight: 600;
+      }
+      #details,
+      #error {
+        word-break: break-word;
+        color: #555;
+        margin-top: 6px;
+      }
+      #error {
+        color: #b42318;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Figma MCP Connector</h1>
+    <label>Companion port <input id="port" inputmode="numeric" value="3846" /></label>
+    <p><button id="save">Save / reconnect</button><button id="close">Close</button></p>
+    <div id="state">loading_config</div>
+    <div id="details"></div>
+    <div id="error"></div>
+    <!-- UI_SCRIPT -->
+  </body>
+</html>

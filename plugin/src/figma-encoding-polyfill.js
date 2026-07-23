@@ -59,10 +59,18 @@
     for (let offset = 0; offset < bytes.length;) {
       const first = bytes[offset++];
       if ((first & 0x80) === 0) units.push(first);
-      else if ((first & 0xe0) === 0xc0) units.push(((first & 0x1f) << 6) | (bytes[offset++] & 0x3f));
-      else if ((first & 0xf0) === 0xe0) units.push(((first & 0x0f) << 12) | ((bytes[offset++] & 0x3f) << 6) | (bytes[offset++] & 0x3f));
+      else if ((first & 0xe0) === 0xc0)
+        units.push(((first & 0x1f) << 6) | (bytes[offset++] & 0x3f));
+      else if ((first & 0xf0) === 0xe0)
+        units.push(
+          ((first & 0x0f) << 12) | ((bytes[offset++] & 0x3f) << 6) | (bytes[offset++] & 0x3f),
+        );
       else if ((first & 0xf8) === 0xf0) {
-        let codePoint = ((first & 0x07) << 18) | ((bytes[offset++] & 0x3f) << 12) | ((bytes[offset++] & 0x3f) << 6) | (bytes[offset++] & 0x3f);
+        let codePoint =
+          ((first & 0x07) << 18) |
+          ((bytes[offset++] & 0x3f) << 12) |
+          ((bytes[offset++] & 0x3f) << 6) |
+          (bytes[offset++] & 0x3f);
         codePoint -= 0x10000;
         units.push(0xd800 | (codePoint >> 10), 0xdc00 | (codePoint & 0x3ff));
       } else units.push(first);
@@ -72,7 +80,9 @@
 
   if (typeof host.TextEncoder === "undefined") {
     host.TextEncoder = class TextEncoder {
-      encode(value = "") { return encodeUtf8(String(value)); }
+      encode(value = "") {
+        return encodeUtf8(String(value));
+      }
       encodeInto(value, destination) {
         const bytes = encodeUtf8(String(value));
         const written = Math.min(bytes.length, destination.length);
@@ -84,7 +94,9 @@
 
   if (typeof host.TextDecoder === "undefined") {
     host.TextDecoder = class TextDecoder {
-      decode(input = new Uint8Array()) { return decodeUtf8(new Uint8Array(input)); }
+      decode(input = new Uint8Array()) {
+        return decodeUtf8(new Uint8Array(input));
+      }
     };
   }
 })();
