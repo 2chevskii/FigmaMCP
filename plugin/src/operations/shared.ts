@@ -2,6 +2,8 @@ export type RpcPayload = Record<string, unknown>;
 export type RpcResult = Record<string, unknown>;
 export type RpcHandler = (payload: RpcPayload) => Promise<RpcResult> | RpcResult;
 
+const idempotentResults = new Map<string, RpcResult>();
+
 export class OperationError extends Error {
   constructor(
     public readonly code: string,
@@ -101,6 +103,7 @@ export function stringArray(
   const maxItems = options.maxItems ?? 500;
   if (
     !Array.isArray(value) ||
+    (options.required && value.length === 0) ||
     value.length > maxItems ||
     value.some((item) => typeof item !== "string" || item.length === 0)
   ) {
@@ -127,7 +130,11 @@ export function objectArray(
   }
 
   const maxItems = options.maxItems ?? 100;
-  if (!Array.isArray(value) || value.length > maxItems) {
+  if (
+    !Array.isArray(value) ||
+    (options.required && value.length === 0) ||
+    value.length > maxItems
+  ) {
     throw new OperationError("invalid_argument", `${key} must contain at most ${maxItems} items.`);
   }
 
@@ -266,4 +273,31 @@ export async function callApiMethod(
   }
 
   return await Reflect.apply(candidate, target, args);
+}
+
+export async function idempotentMutation(
+  operation: string,
+  payload: RpcPayload,
+  execute: () => Promise<RpcResult> | RpcResult,
+): Promise<RpcResult> {
+  const key = optionalString(payload, "idempotency_key", { maxLength: 200 });
+  if (key) {
+    const cacheKey = `${operation}:${key}`;
+    const cached = idempotentResults.get(cacheKey);
+    if (cached) {
+      return { ...cached, idempotent_replay: true };
+    }
+
+    const result = await execute();
+    idempotentResults.set(cacheKey, result);
+    while (idempotentResults.size > 200) {
+      const oldest = idempotentResults.keys().next().value;
+      if (typeof oldest === "string") {
+        idempotentResults.delete(oldest);
+      }
+    }
+    return result;
+  }
+
+  return await execute();
 }

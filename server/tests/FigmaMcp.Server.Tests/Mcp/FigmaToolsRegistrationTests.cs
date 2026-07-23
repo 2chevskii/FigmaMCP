@@ -38,6 +38,14 @@ public sealed class FigmaToolsRegistrationTests
             "get_figma_prototype",
             "get_figma_plugin_data",
             "get_figma_dev_metadata",
+            "create_figma_nodes",
+            "update_figma_nodes",
+            "clone_figma_nodes",
+            "move_figma_nodes",
+            "delete_figma_nodes",
+            "resize_figma_nodes",
+            "combine_figma_nodes",
+            "set_figma_vector_network",
         };
 
         Assert.All(expectedNames, name => Assert.Contains(name, registeredNames));

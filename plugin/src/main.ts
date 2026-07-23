@@ -1,6 +1,7 @@
 import { Envelope, now, pack, PROTOCOL_VERSION, unpack } from "./bridge/protocol";
 import { DEFAULT_PORT, PLUGIN_VERSION, PORT_STORAGE_KEY } from "./config";
 import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from "./messages";
+import { nodeMutationHandlers } from "./operations/nodes";
 import { readHandlers, startChangeJournal } from "./operations/read";
 import { OperationError, RpcHandler, RpcPayload } from "./operations/shared";
 
@@ -47,7 +48,11 @@ async function handleBridgeFrame(bytes: Uint8Array): Promise<void> {
     return;
   }
 
-  const handler: RpcHandler | undefined = request.method ? readHandlers[request.method] : undefined;
+  const handlers: Record<string, RpcHandler> = {
+    ...readHandlers,
+    ...nodeMutationHandlers,
+  };
+  const handler: RpcHandler | undefined = request.method ? handlers[request.method] : undefined;
   if (!handler) {
     respondWithError(
       request,
