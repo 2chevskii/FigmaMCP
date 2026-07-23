@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 
 const watch = process.argv.includes("--watch");
 const outputDirectory = "dist";
@@ -8,6 +8,7 @@ const ui = { entryPoints: ["src/ui.ts"], bundle: true, format: "iife", target: "
 async function run() {
   await mkdir(outputDirectory, { recursive: true });
   await build(main);
+  await copyFile("manifest.json", `${outputDirectory}/manifest.json`);
   const result = await build(ui);
   const template = await readFile("src/ui-template.html", "utf8");
   await writeFile(`${outputDirectory}/ui.html`, template.replace("<!-- UI_SCRIPT -->", `<script>${result.outputFiles[0].text}</script>`));
