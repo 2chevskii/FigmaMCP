@@ -70,6 +70,7 @@ public sealed class PluginConnectionRegistry(
     public Task<ReadOnlyMemory<byte>> RequestAsync(
         Guid id,
         string method,
+        ReadOnlyMemory<byte> payload,
         CancellationToken cancellationToken)
     {
         if (!_connections.TryGetValue(id, out var connection))
@@ -79,7 +80,7 @@ public sealed class PluginConnectionRegistry(
                 "No live Figma plugin connection exists for the supplied connection_id.");
         }
 
-        return connection.RequestAsync(method, cancellationToken);
+        return connection.RequestAsync(method, payload, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()

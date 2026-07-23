@@ -211,7 +211,7 @@ public static class BridgeEndpoint
 
             if (stream.Length + result.Count > BridgeProtocol.MaxMessageBytes)
             {
-                throw new BridgeProtocolException("Bridge message exceeds the 1 MiB limit.");
+                throw new BridgeProtocolException("Bridge message exceeds the 16 MiB limit.");
             }
 
             await stream.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken);

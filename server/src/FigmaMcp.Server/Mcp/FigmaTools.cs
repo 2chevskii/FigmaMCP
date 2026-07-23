@@ -55,6 +55,7 @@ public sealed class FigmaTools
             var payload = await _registry.RequestAsync(
                 id,
                 "get_document_metadata",
+                BridgeEnvelopeCodec.EmptyMap(),
                 cancellationToken);
             var json = MessagePackSerializer.ConvertToJson(
                 payload,

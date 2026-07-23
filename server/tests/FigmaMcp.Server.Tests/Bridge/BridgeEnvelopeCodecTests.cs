@@ -12,7 +12,7 @@ public sealed class BridgeEnvelopeCodecTests
         var sentAt = new DateTimeOffset(2026, 7, 23, 12, 30, 0, TimeSpan.Zero);
         var envelope = new BridgeEnvelope(
             "request",
-            1,
+            2,
             connectionId,
             requestId,
             "get_document_metadata",
@@ -36,7 +36,7 @@ public sealed class BridgeEnvelopeCodecTests
     {
         var envelope = new BridgeEnvelope(
             "error",
-            1,
+            2,
             Guid.Parse("11111111-1111-4111-8111-111111111111"),
             Guid.Parse("22222222-2222-4222-8222-222222222222"),
             null,

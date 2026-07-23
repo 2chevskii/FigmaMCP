@@ -26,7 +26,7 @@ public static class BridgeEnvelopeCodec
     {
         if (source.Length is 0 or > MaxMessageBytes)
         {
-            throw new BridgeProtocolException("Bridge message exceeds the 1 MiB limit.");
+            throw new BridgeProtocolException("Bridge message exceeds the 16 MiB limit.");
         }
 
         var reader = new MessagePackReader(source);

@@ -69,6 +69,7 @@ public sealed class PluginConnection : IDisposable
 
     public async Task<ReadOnlyMemory<byte>> RequestAsync(
         string method,
+        ReadOnlyMemory<byte> payload,
         CancellationToken cancellationToken)
     {
         await _operations.WaitAsync(cancellationToken);
@@ -95,7 +96,7 @@ public sealed class PluginConnection : IDisposable
                         Id,
                         requestId,
                         method,
-                        BridgeEnvelopeCodec.EmptyMap(),
+                        payload,
                         null,
                         DateTimeOffset.UtcNow),
                     cancellationToken);
@@ -108,7 +109,7 @@ public sealed class PluginConnection : IDisposable
             {
                 throw new BridgeRpcException(
                     "plugin_timeout",
-                    "The Figma plugin did not respond within ten seconds.");
+                    "The Figma plugin did not respond within thirty seconds.");
             }
             finally
             {

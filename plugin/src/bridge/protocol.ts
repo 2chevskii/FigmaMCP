@@ -1,7 +1,7 @@
 import { decode, encode } from "@msgpack/msgpack";
 
-export const PROTOCOL_VERSION = 1;
-export const MAX_MESSAGE_BYTES = 1024 * 1024;
+export const PROTOCOL_VERSION = 2;
+export const MAX_MESSAGE_BYTES = 16 * 1024 * 1024;
 
 export type BridgePayload = Record<string, unknown>;
 
@@ -28,7 +28,7 @@ export function now(): string {
 export function pack(value: Envelope): Uint8Array {
   const bytes = encode(value);
   if (bytes.length > MAX_MESSAGE_BYTES) {
-    throw new Error("Bridge message exceeds 1 MiB.");
+    throw new Error("Bridge message exceeds 16 MiB.");
   }
 
   return bytes;
