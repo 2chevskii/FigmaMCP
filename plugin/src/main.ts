@@ -1,12 +1,13 @@
 import { Envelope, now, pack, PROTOCOL_VERSION, unpack } from "./bridge/protocol";
 import { DEFAULT_PORT, PLUGIN_VERSION, PORT_STORAGE_KEY } from "./config";
 import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from "./messages";
-
-const GET_DOCUMENT_METADATA = "get_document_metadata";
+import { readHandlers, startChangeJournal } from "./operations/read";
+import { OperationError, RpcHandler, RpcPayload } from "./operations/shared";
 
 figma.showUI(__html__, { width: 360, height: 300, themeColors: true });
 
 void loadConfig();
+startChangeJournal();
 figma.on("currentpagechange", notifyContextChanged);
 figma.ui.onmessage = handleUiMessage;
 
@@ -28,12 +29,12 @@ function handleUiMessage(message: UiToControllerMessage): void {
       figma.closePlugin();
       break;
     case "bridge_frame":
-      handleBridgeFrame(message.bytes);
+      void handleBridgeFrame(message.bytes);
       break;
   }
 }
 
-function handleBridgeFrame(bytes: Uint8Array): void {
+async function handleBridgeFrame(bytes: Uint8Array): Promise<void> {
   let request: Envelope;
 
   try {
@@ -46,7 +47,8 @@ function handleBridgeFrame(bytes: Uint8Array): void {
     return;
   }
 
-  if (request.method !== GET_DOCUMENT_METADATA) {
+  const handler: RpcHandler | undefined = request.method ? readHandlers[request.method] : undefined;
+  if (!handler) {
     respondWithError(
       request,
       "method_not_found",
@@ -56,6 +58,8 @@ function handleBridgeFrame(bytes: Uint8Array): void {
   }
 
   try {
+    const payload = (request.payload ?? {}) as RpcPayload;
+    const result = await handler(payload);
     respond({
       type: "response",
       protocol_version: PROTOCOL_VERSION,
@@ -64,11 +68,17 @@ function handleBridgeFrame(bytes: Uint8Array): void {
       sent_at: now(),
       payload: {
         connection_id: request.connection_id,
-        ...readDocumentMetadata(),
+        ...result,
       },
     });
-  } catch {
-    respondWithError(request, "figma_api_error", "Unable to read document metadata.");
+  } catch (error) {
+    if (error instanceof OperationError) {
+      respondWithError(request, error.code, error.message);
+      return;
+    }
+
+    const message = error instanceof Error ? error.message : "The Figma API operation failed.";
+    respondWithError(request, "figma_api_error", message);
   }
 }
 
@@ -85,35 +95,6 @@ function respondWithError(request: Envelope, code: string, message: string): voi
 
 function respond(envelope: Envelope): void {
   postToUi({ type: "bridge_frame", bytes: pack(envelope) });
-}
-
-function readDocumentMetadata(): Record<string, unknown> {
-  const document = figma.root;
-  const currentPage = figma.currentPage;
-
-  return {
-    document: {
-      name: document.name,
-      type: document.type,
-      color_profile: document.documentColorProfile,
-      page_count: document.children.length,
-      pages: document.children.map((page) => ({ id: page.id, name: page.name })),
-    },
-    current_page: {
-      id: currentPage.id,
-      name: currentPage.name,
-      top_level_node_count: currentPage.children.length,
-    },
-    selection: currentPage.selection.map((node) => ({
-      id: node.id,
-      name: node.name,
-      type: node.type,
-    })),
-    editor: {
-      type: figma.editorType,
-      mode: figma.mode,
-    },
-  };
 }
 
 function readConnectionContext(): ConnectionContext {

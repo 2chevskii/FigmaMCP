@@ -10,8 +10,15 @@ module.exports = tseslint.config(
   // tseslint.configs.recommended instead.
   tseslint.configs.recommended,
   {
+    files: ["**/*.ts"],
     plugins: {
       "@figma/figma-plugins": figmaPlugin,
+    },
+    languageOptions: {
+      parserOptions: {
+        project: true,
+        tsconfigRootDir: __dirname,
+      },
     },
     rules: {
       ...figmaPlugin.configs.recommended.rules,

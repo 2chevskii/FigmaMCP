@@ -8,7 +8,7 @@ using ModelContextProtocol.Server;
 namespace FigmaMcp.Server.Mcp;
 
 [McpServerToolType]
-public sealed class FigmaTools
+public sealed partial class FigmaTools
 {
     private const string ConnectionNotFoundMessage =
         "No live Figma plugin connection exists for the supplied connection_id.";
@@ -45,23 +45,32 @@ public sealed class FigmaTools
         [Description("The live Figma plugin connection UUID.")] string connection_id,
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParseExact(connection_id, "D", out var id))
+        return await InvokeAsync(
+            connection_id,
+            "get_document_metadata",
+            null,
+            cancellationToken);
+    }
+
+    private async Task<object> InvokeAsync(
+        string connectionId,
+        string method,
+        JsonElement? input,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParseExact(connectionId, "D", out var id))
         {
-            return Error("connection_not_found", ConnectionNotFoundMessage, connection_id);
+            return Error("connection_not_found", ConnectionNotFoundMessage, connectionId);
         }
 
         try
         {
             var payload = await _registry.RequestAsync(
                 id,
-                "get_document_metadata",
-                BridgeEnvelopeCodec.EmptyMap(),
+                method,
+                BridgePayloadCodec.Encode(input),
                 cancellationToken);
-            var json = MessagePackSerializer.ConvertToJson(
-                payload,
-                BridgeProtocol.SerializerOptions);
-            using var document = JsonDocument.Parse(json);
-            return document.RootElement.Clone();
+            return BridgePayloadCodec.Decode(payload);
         }
         catch (BridgeRpcException exception)
         {
