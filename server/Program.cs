@@ -1,4 +1,7 @@
 using FigmaMcp.Server.Options;
+using FigmaMcp.Server.Mcp;
+using FigmaMcp.Server.Bridge;
+using FigmaMcp.Server.Connections;
 
 if (!ServerOptions.TryParse(args, out var options, out var error))
 {
@@ -10,9 +13,26 @@ var builder = WebApplication.CreateSlimBuilder();
 builder.WebHost.UseUrls($"http://127.0.0.1:{options!.Port}");
 builder.Services.AddSingleton(options);
 builder.Services.AddHealthChecks();
+builder.Services.AddSingleton<PluginConnectionRegistry>();
+builder.Services.AddMcpServer(server =>
+    {
+        server.ServerInfo = new() { Name = "figma-mcp-server", Version = "0.1.0" };
+        server.ServerInstructions = "Call list_figma_connections before document-specific work. Always pass the chosen connection_id. Connection IDs identify live plugin invocations, not permanent Figma files. A missing connection means the plugin must be opened or reconnected.";
+    })
+    .WithHttpTransport(transport => transport.Stateless = true)
+    .WithTools<FigmaTools>();
 
 var app = builder.Build();
-app.MapGet("/health", (ServerOptions settings, IHostApplicationLifetime lifetime) => Results.Json(new
+app.UseWebSockets();
+app.Use(async (context, next) =>
+{
+    var validHosts = new[] { $"127.0.0.1:{options.Port}", $"localhost:{options.Port}" };
+    if (!validHosts.Contains(context.Request.Host.Value, StringComparer.OrdinalIgnoreCase) || (context.Request.Path.StartsWithSegments("/mcp") && context.Request.Headers.ContainsKey("Origin"))) { context.Response.StatusCode = StatusCodes.Status400BadRequest; return; }
+    await next(context);
+});
+app.MapMcp("/mcp");
+app.Map("/bridge", BridgeEndpoint.HandleAsync);
+app.MapGet("/health", (ServerOptions settings, PluginConnectionRegistry registry) => Results.Json(new
 {
     service = "figma-mcp-server",
     version = "0.1.0",
@@ -21,7 +41,7 @@ app.MapGet("/health", (ServerOptions settings, IHostApplicationLifetime lifetime
     bridge_endpoint = "/bridge",
     port = settings.Port,
     uptime_seconds = (long)(DateTimeOffset.UtcNow - ProcessStart.UtcNow).TotalSeconds,
-    connected_plugins = 0
+    connected_plugins = registry.Count
 }));
 
 Console.WriteLine("figma-mcp-server 0.1.0");
