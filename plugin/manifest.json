@@ -2,14 +2,14 @@
   "name": "figma-mcp-connector",
   "id": "1662099735060529763",
   "api": "1.0.0",
-  "main": "code.js",
+  "main": "dist/plugin.js",
   "capabilities": [],
   "enableProposedApi": false,
   "documentAccess": "dynamic-page",
   "editorType": [
     "figma"
   ],
-  "ui": "ui.html",
+  "ui": "dist/ui.html",
   "networkAccess": {
     "allowedDomains": [
       "*"

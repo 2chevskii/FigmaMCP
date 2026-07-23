@@ -2,7 +2,7 @@
   "name": "figma-mcp-connector",
   "version": "0.1.0",
   "description": "Figma MCP connector",
-  "main": "code.js",
+  "main": "dist/plugin.js",
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",

@@ -10,7 +10,7 @@ Publish a self-contained Windows executable from `server/` with `dotnet publish 
 
 ## Plugin
 
-Run `npm install`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` in `plugin/`. In Figma Desktop, import `plugin/manifest.json` as a development plugin and open it in each document. The UI persists its port and reconnects with bounded jittered backoff.
+Run `npm install`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` in `plugin/`. The build writes the Figma entry points to `plugin/dist/plugin.js` and `plugin/dist/ui.html`. In Figma Desktop, import `plugin/manifest.json` as a development plugin and open it in each document. The UI persists its port and reconnects with bounded jittered backoff.
 
 The local bridge requires `figma-mcp-bridge.v1` and MessagePack binary frames. It is bound only to `127.0.0.1`; the server rejects unexpected Hosts, browser origins at `/mcp`, unsupported bridge origins, text frames, and messages over 1 MiB.
 
