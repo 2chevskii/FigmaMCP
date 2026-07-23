@@ -4,9 +4,9 @@ This repository provides a local .NET companion in `server/` and a Figma plugin 
 
 ## Run
 
-Install the .NET 10.0.302 SDK, then run `dotnet run --project server/FigmaMcp.Server.csproj -- --port 3846`. Configure an MCP client with `http://127.0.0.1:3846/mcp`; health is at `http://127.0.0.1:3846/health`.
+Install the .NET 10.0.302 SDK, then run `dotnet run --project src/FigmaMcp.Server -- --port 3846` from `server/`. Configure an MCP client with `http://127.0.0.1:3846/mcp`; health is at `http://127.0.0.1:3846/health`.
 
-Publish a self-contained Windows executable with `dotnet publish server/FigmaMcp.Server.csproj -p:PublishProfile=win-x64`.
+Publish a self-contained Windows executable from `server/` with `dotnet publish src/FigmaMcp.Server -p:PublishProfile=win-x64`.
 
 ## Plugin
 
