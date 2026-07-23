@@ -14,7 +14,6 @@ import {
   RpcHandler,
   RpcPayload,
   RpcResult,
-  setMutationObserver,
   stringArray,
   toSerializable,
 } from "./shared";
@@ -229,13 +228,16 @@ const journal: JournalEntry[] = [];
 const loadedPageIds = new Set<string>();
 let nextCursor = 1;
 
-export function startChangeJournal(): void {
-  loadedPageIds.add(figma.currentPage.id);
-  setMutationObserver((operation, result) => {
-    appendChange("plugin_mutation", {
-      operation,
-      result_keys: Object.keys(result),
-      affected_ids: collectAffectedIds(result),
+export async function startChangeJournal(): Promise<void> {
+  await figma.loadAllPagesAsync();
+  for (const page of figma.root.children) {
+    loadedPageIds.add(page.id);
+  }
+  // The required loadAllPagesAsync call is awaited directly above.
+  // eslint-disable-next-line @figma/figma-plugins/dynamic-page-documentchange-event-advice
+  figma.on("documentchange", (event) => {
+    appendChange("documentchange", {
+      changes: event.documentChanges.map((change) => toSerializable(change)),
     });
   });
   figma.on("selectionchange", () => {
@@ -251,35 +253,6 @@ export function startChangeJournal(): void {
   figma.on("stylechange", (event) => {
     appendChange("stylechange", toSerializable(event));
   });
-}
-
-function collectAffectedIds(value: unknown, ids = new Set<string>()): string[] {
-  if (ids.size >= 200 || value === null || value === undefined) {
-    return [...ids];
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectAffectedIds(item, ids);
-      if (ids.size >= 200) {
-        break;
-      }
-    }
-    return [...ids];
-  }
-  if (typeof value !== "object") {
-    return [...ids];
-  }
-  for (const [key, item] of Object.entries(value as RpcPayload)) {
-    if (typeof item === "string" && (key === "id" || key.endsWith("_id") || key.endsWith("_ids"))) {
-      ids.add(item);
-    } else {
-      collectAffectedIds(item, ids);
-    }
-    if (ids.size >= 200) {
-      break;
-    }
-  }
-  return [...ids];
 }
 
 function appendChange(type: string, detail: unknown): void {

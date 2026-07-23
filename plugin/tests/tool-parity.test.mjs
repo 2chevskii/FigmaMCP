@@ -44,9 +44,15 @@ test("the Design connector does not register editor-specific product tools", asy
   assert.doesNotMatch(registrationTest, /\b(?:figjam|buzz|slide|codegen|textreview|payments)\b/i);
 });
 
-test("incremental document access does not register documentchange", async () => {
-  const readOperations = await readFile("src/operations/read.ts", "utf8");
+test("documentchange is registered only after all pages are loaded", async () => {
+  const [readOperations, main] = await Promise.all([
+    readFile("src/operations/read.ts", "utf8"),
+    readFile("src/main.ts", "utf8"),
+  ]);
 
-  assert.doesNotMatch(readOperations, /figma\.on\(["']documentchange["']/);
-  assert.match(readOperations, /setMutationObserver/);
+  assert.match(
+    readOperations,
+    /await figma\.loadAllPagesAsync\(\);[\s\S]*figma\.on\(["']documentchange["']/,
+  );
+  assert.match(main, /try \{\s*await changeJournalReady;\s*const payload/);
 });

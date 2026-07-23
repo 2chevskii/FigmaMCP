@@ -14,11 +14,11 @@ permission-gated APIs can vary by Figma runtime, account, and file.
 - Mutation tools that accept `dry_run: true` validate and report intended targets without writing.
 - Mutation tools that accept `idempotency_key` cache the first result for the current plugin
   invocation. Reusing the key returns that result with `idempotent_replay: true`.
-- Page access is explicit. Call `load_figma_page` before traversing a non-current page. The connector
-  never calls `loadAllPagesAsync()` implicitly.
-- The change journal records connector mutations plus selection, page, and style events. Figma does
-  not permit a global `documentchange` listener in dynamic-page mode unless every page is loaded, so
-  unrelated manual canvas edits are not journaled.
+- The connector calls `loadAllPagesAsync()` once during initialization because Figma requires it
+  before registering `documentchange` in dynamic-page mode. The bridge starts accepting operations
+  only after this finishes.
+- The change journal records all document changes, including unrelated manual canvas edits, plus
+  selection, page, and style events.
 - Binary inputs and outputs use base64 and are capped at 12 MiB. Bridge envelopes are capped at
   16 MiB.
 - Errors are structured as `error.code`, `error.message`, and `error.connection_id`.

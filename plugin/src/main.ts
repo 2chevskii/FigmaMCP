@@ -11,10 +11,20 @@ import { textComponentHandlers } from "./operations/text-components";
 
 figma.showUI(__html__, { width: 360, height: 300, themeColors: true });
 
-void loadConfig();
-startChangeJournal();
+const changeJournalReady = startChangeJournal();
+void initialize();
 figma.on("currentpagechange", notifyContextChanged);
 figma.ui.onmessage = handleUiMessage;
+
+async function initialize(): Promise<void> {
+  try {
+    await changeJournalReady;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown Figma API error.";
+    figma.notify(`Unable to initialize document change tracking: ${message}`, { error: true });
+  }
+  await loadConfig();
+}
 
 async function loadConfig(): Promise<void> {
   const storedPort: unknown = await figma.clientStorage.getAsync(PORT_STORAGE_KEY);
@@ -71,6 +81,7 @@ async function handleBridgeFrame(bytes: Uint8Array): Promise<void> {
   }
 
   try {
+    await changeJournalReady;
     const payload = (request.payload ?? {}) as RpcPayload;
     const result = await handler(payload);
     respond({

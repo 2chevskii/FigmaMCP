@@ -47,8 +47,9 @@ Every document-specific tool should keep requiring `connection_id`. In addition:
    patches rather than generating hundreds of property-specific tools.
 2. **Keep every read bounded.** Require explicit fields, depth, result limits, and continuation
    cursors. Return large exports and media as MCP resources or chunk handles, not inline tool JSON.
-3. **Respect dynamic page loading.** Never call `loadAllPagesAsync()` implicitly. Tools should load
-   only an explicitly named page or reject access to an unloaded page with an actionable error.
+3. **Initialize change tracking completely.** Call `loadAllPagesAsync()` once before registering
+   `documentchange`; Figma requires this in dynamic-page mode. Bridge requests wait for initialization
+   so manual and connector-originated changes are both journaled.
 4. **Serialize writes per connection.** Preserve the existing per-plugin request serialization and
    permit reads on other connections to proceed concurrently.
 5. **Make writes auditable.** Mutating tools should support `dry_run`, `idempotency_key`, and a
@@ -74,7 +75,7 @@ Every document-specific tool should keep requiring `connection_id`. In addition:
 | `get_figma_selection`        | Return a projected, bounded view of the current selection and selected text range.                                                                                  |
 | `set_figma_selection`        | Select explicit node IDs and optionally focus/zoom them.                                                                                                            |
 | `set_figma_current_page`     | Switch to one explicitly selected page through the async dynamic-page API.                                                                                          |
-| `get_figma_document_changes` | Poll a bounded change journal by cursor, backed by connector mutations plus selection, page, and style events.                                                      |
+| `get_figma_document_changes` | Poll a bounded change journal by cursor, backed by `documentchange`, selection, page, and style events.                                                             |
 
 This family covers document/root/current-page access, page loading, selection, editor/mode context,
 node/style change events, and the public current-user/active-user fields when permissions and policy
