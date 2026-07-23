@@ -3,7 +3,8 @@ import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 
 const watch = process.argv.includes("--watch");
 const outputDirectory = "dist";
-const main = { entryPoints: ["src/main.ts"], bundle: true, format: "iife", target: "es2020", outfile: `${outputDirectory}/plugin.js`, platform: "browser" };
+const encodingPolyfill = await readFile("src/figma-encoding-polyfill.js", "utf8");
+const main = { entryPoints: ["src/main.ts"], bundle: true, format: "iife", target: "es2020", outfile: `${outputDirectory}/plugin.js`, platform: "browser", banner: { js: encodingPolyfill } };
 const ui = { entryPoints: ["src/ui.ts"], bundle: true, format: "iife", target: "es2020", write: false, platform: "browser" };
 async function run() {
   await mkdir(outputDirectory, { recursive: true });
