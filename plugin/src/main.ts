@@ -4,7 +4,7 @@ import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from 
 
 const GET_DOCUMENT_METADATA = "get_document_metadata";
 
-figma.showUI(__html__, { width: 360, height: 240, themeColors: true });
+figma.showUI(__html__, { width: 360, height: 300, themeColors: true });
 
 void loadConfig();
 figma.on("currentpagechange", notifyContextChanged);

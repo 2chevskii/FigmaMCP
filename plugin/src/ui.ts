@@ -11,9 +11,19 @@ type ConnectionState =
   | "invalid_port"
   | "protocol_error";
 
+const STATE_LABELS: Record<ConnectionState, string> = {
+  loading_config: "Loading settings…",
+  connecting: "Connecting…",
+  connected: "Connected",
+  reconnecting: "Reconnecting…",
+  invalid_port: "Check server port",
+  protocol_error: "Connection error",
+};
+
 const RECONNECT_DELAYS_MS = [500, 1000, 2000, 5000, 10000];
 
 const portInput = requiredElement<HTMLInputElement>("#port");
+const statusElement = requiredElement<HTMLDivElement>("#status");
 const stateElement = requiredElement<HTMLDivElement>("#state");
 const detailsElement = requiredElement<HTMLDivElement>("#details");
 const errorElement = requiredElement<HTMLDivElement>("#error");
@@ -37,6 +47,12 @@ let stopped = false;
 window.onmessage = handleControllerMessage;
 saveButton.addEventListener("click", savePort);
 closeButton.addEventListener("click", closePlugin);
+portInput.addEventListener("input", clearPortError);
+portInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    savePort();
+  }
+});
 
 function connect(): void {
   if (stopped) {
@@ -44,7 +60,11 @@ function connect(): void {
   }
 
   clearReconnectTimer();
-  setState(reconnectAttempt > 0 ? "reconnecting" : "connecting");
+  setState(
+    reconnectAttempt > 0 ? "reconnecting" : "connecting",
+    "",
+    `ws://127.0.0.1:${configuredPort}/bridge`,
+  );
 
   const nextSocket = new WebSocket(`ws://127.0.0.1:${configuredPort}/bridge`, BRIDGE_SUBPROTOCOL);
   nextSocket.binaryType = "arraybuffer";
@@ -80,7 +100,11 @@ function connect(): void {
 
   nextSocket.onerror = () => {
     if (socket === nextSocket) {
-      errorElement.textContent = "Unable to connect to the companion server.";
+      setState(
+        "reconnecting",
+        "Unable to reach the companion server. Retrying automatically.",
+        `ws://127.0.0.1:${configuredPort}/bridge`,
+      );
     }
   };
 
@@ -96,8 +120,7 @@ function receive(envelope: Envelope, bytes: Uint8Array): void {
   switch (envelope.type) {
     case "hello_ack":
       reconnectAttempt = 0;
-      setState("connected");
-      detailsElement.textContent = `Connection: ${connectionId}`;
+      setState("connected", "", `Local server · Port ${configuredPort}`);
       break;
     case "request":
       postToController({ type: "bridge_frame", bytes });
@@ -152,9 +175,12 @@ function handleControllerMessage(
 function savePort(): void {
   if (!isPort(portInput.value)) {
     setState("invalid_port", "Enter a decimal port from 1 through 65535.");
+    portInput.setAttribute("aria-invalid", "true");
+    portInput.focus();
     return;
   }
 
+  portInput.removeAttribute("aria-invalid");
   configuredPort = Number(portInput.value);
   postToController({ type: "set_port", port: configuredPort });
   restartConnection();
@@ -218,9 +244,36 @@ function closeForProtocolError(target: WebSocket, message: string): void {
   target.close();
 }
 
-function setState(value: ConnectionState, message = ""): void {
-  stateElement.textContent = value;
+function setState(value: ConnectionState, message = "", details?: string): void {
+  statusElement.dataset.state = value;
+  stateElement.textContent = STATE_LABELS[value];
+  detailsElement.textContent = details ?? defaultStateDetails(value);
   errorElement.textContent = message;
+}
+
+function defaultStateDetails(value: ConnectionState): string {
+  switch (value) {
+    case "connected":
+      return `Local server · Port ${configuredPort}`;
+    case "connecting":
+      return "Opening a local connection";
+    case "reconnecting":
+      return `Retry attempt ${reconnectAttempt + 1}`;
+    case "invalid_port":
+      return "Update the connection setting below";
+    case "protocol_error":
+      return "The server returned an unexpected response";
+    case "loading_config":
+      return "Preparing the connector";
+  }
+}
+
+function clearPortError(): void {
+  portInput.removeAttribute("aria-invalid");
+
+  if (statusElement.dataset.state === "invalid_port") {
+    setState(socket?.readyState === WebSocket.OPEN ? "connected" : "reconnecting");
+  }
 }
 
 function postToController(message: UiToControllerMessage): void {
