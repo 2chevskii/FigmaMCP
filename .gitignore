@@ -1,0 +1,6 @@
+bin/
+obj/
+plugin/node_modules/
+plugin/code.js
+plugin/ui.html
+*.user
