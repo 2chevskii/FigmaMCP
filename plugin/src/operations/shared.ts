@@ -3,6 +3,7 @@ export type RpcResult = Record<string, unknown>;
 export type RpcHandler = (payload: RpcPayload) => Promise<RpcResult> | RpcResult;
 
 const idempotentResults = new Map<string, RpcResult>();
+let mutationObserver: ((operation: string, result: RpcResult) => void) | undefined;
 
 export class OperationError extends Error {
   constructor(
@@ -289,6 +290,9 @@ export async function idempotentMutation(
     }
 
     const result = await execute();
+    if (payload.dry_run !== true) {
+      mutationObserver?.(operation, result);
+    }
     idempotentResults.set(cacheKey, result);
     while (idempotentResults.size > 200) {
       const oldest = idempotentResults.keys().next().value;
@@ -299,5 +303,15 @@ export async function idempotentMutation(
     return result;
   }
 
-  return await execute();
+  const result = await execute();
+  if (payload.dry_run !== true) {
+    mutationObserver?.(operation, result);
+  }
+  return result;
+}
+
+export function setMutationObserver(
+  observer: (operation: string, result: RpcResult) => void,
+): void {
+  mutationObserver = observer;
 }

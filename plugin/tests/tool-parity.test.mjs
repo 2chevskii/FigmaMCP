@@ -43,3 +43,10 @@ test("the Design connector does not register editor-specific product tools", asy
 
   assert.doesNotMatch(registrationTest, /\b(?:figjam|buzz|slide|codegen|textreview|payments)\b/i);
 });
+
+test("incremental document access does not register documentchange", async () => {
+  const readOperations = await readFile("src/operations/read.ts", "utf8");
+
+  assert.doesNotMatch(readOperations, /figma\.on\(["']documentchange["']/);
+  assert.match(readOperations, /setMutationObserver/);
+});

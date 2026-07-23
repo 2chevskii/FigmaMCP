@@ -14,6 +14,7 @@ import {
   RpcHandler,
   RpcPayload,
   RpcResult,
+  setMutationObserver,
   stringArray,
   toSerializable,
 } from "./shared";
@@ -230,11 +231,11 @@ let nextCursor = 1;
 
 export function startChangeJournal(): void {
   loadedPageIds.add(figma.currentPage.id);
-  // The connector intentionally journals only explicitly loaded pages.
-  // eslint-disable-next-line @figma/figma-plugins/dynamic-page-documentchange-event-advice
-  figma.on("documentchange", (event) => {
-    appendChange("documentchange", {
-      changes: event.documentChanges.map((change) => toSerializable(change)),
+  setMutationObserver((operation, result) => {
+    appendChange("plugin_mutation", {
+      operation,
+      result_keys: Object.keys(result),
+      affected_ids: collectAffectedIds(result),
     });
   });
   figma.on("selectionchange", () => {
@@ -250,6 +251,35 @@ export function startChangeJournal(): void {
   figma.on("stylechange", (event) => {
     appendChange("stylechange", toSerializable(event));
   });
+}
+
+function collectAffectedIds(value: unknown, ids = new Set<string>()): string[] {
+  if (ids.size >= 200 || value === null || value === undefined) {
+    return [...ids];
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectAffectedIds(item, ids);
+      if (ids.size >= 200) {
+        break;
+      }
+    }
+    return [...ids];
+  }
+  if (typeof value !== "object") {
+    return [...ids];
+  }
+  for (const [key, item] of Object.entries(value as RpcPayload)) {
+    if (typeof item === "string" && (key === "id" || key.endsWith("_id") || key.endsWith("_ids"))) {
+      ids.add(item);
+    } else {
+      collectAffectedIds(item, ids);
+    }
+    if (ids.size >= 200) {
+      break;
+    }
+  }
+  return [...ids];
 }
 
 function appendChange(type: string, detail: unknown): void {

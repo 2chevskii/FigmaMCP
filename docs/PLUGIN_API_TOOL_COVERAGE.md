@@ -74,7 +74,7 @@ Every document-specific tool should keep requiring `connection_id`. In addition:
 | `get_figma_selection`        | Return a projected, bounded view of the current selection and selected text range.                                                                                  |
 | `set_figma_selection`        | Select explicit node IDs and optionally focus/zoom them.                                                                                                            |
 | `set_figma_current_page`     | Switch to one explicitly selected page through the async dynamic-page API.                                                                                          |
-| `get_figma_document_changes` | Poll a bounded change journal by cursor, backed by `documentchange`, selection, page, style, Slides-view, and canvas-view events.                                   |
+| `get_figma_document_changes` | Poll a bounded change journal by cursor, backed by connector mutations plus selection, page, and style events.                                                      |
 
 This family covers document/root/current-page access, page loading, selection, editor/mode context,
 node/style change events, and the public current-user/active-user fields when permissions and policy
