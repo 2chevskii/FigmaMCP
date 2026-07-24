@@ -73,6 +73,7 @@ public sealed class FigmaToolsRegistrationTests
             "list_figma_shaders",
             "load_figma_brushes",
             "export_figma_nodes",
+            "get_figma_screenshot",
             "encode_figma_binary",
             "update_figma_prototype",
             "get_figma_viewport",

@@ -98,7 +98,7 @@ shape-specific point/arc data, and dev status.
 
 | Tool                       | Input object                                                                                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `clone_figma_nodes`        | `node_ids`                                                                                                    |
+| `clone_figma_nodes`        | `node_ids`; optional `parent_id`, `index`, and anchor-relative `placement`                                    |
 | `move_figma_nodes`         | `moves: [{ node_id, parent_id, index? }]`                                                                     |
 | `delete_figma_nodes`       | `node_ids`                                                                                                    |
 | `resize_figma_nodes`       | `items: [{ node_id, mode, width?, height?, scale?, lock_aspect_ratio? }]`                                     |
@@ -107,6 +107,36 @@ shape-specific point/arc data, and dev status.
 
 Combine operations are `group`, `transform_group`, `flatten`, `ungroup`, `combine_as_variants`,
 `union`, `subtract`, `intersect`, and `exclude`.
+
+`clone_figma_nodes` normally follows Figma's `clone()` behavior and creates duplicates on the
+current page. Pass `parent_id` to clone directly into a target container. To preserve each source
+node's full transform relative to one visual anchor while copying it to another, also pass
+`placement`. When `placement` is present and `parent_id` is omitted, the target anchor's direct
+parent is used:
+
+```json
+{
+  "node_ids": ["source-heart-id", "source-status-id"],
+  "parent_id": "target-avatar-container-id",
+  "placement": {
+    "mode": "preserve_relative_transform",
+    "source_anchor_id": "source-avatar-id",
+    "target_anchor_id": "target-avatar-id"
+  }
+}
+```
+
+The placement calculation uses absolute transform matrices, so it works when the target parent is a
+group or boolean operation. This matters because Figma defines `relativeTransform` (and therefore
+`x`/`y`) relative to the nearest container ancestor, skipping groups and boolean operations. Raw
+source `x`/`y` values must not be copied between different parent structures.
+If a target parent controls child placement (for example, a non-absolute auto-layout child), the
+operation fails with `unsupported_placement` and removes the attempted clones instead of leaving
+mispositioned nodes behind.
+
+Clone and move results include `relative_transform`, `absolute_transform`,
+`absolute_bounding_box`, and `coordinate_parent_id`. Move results include both `before` and `after`
+geometry.
 
 ## Text, components, and instances
 
@@ -151,15 +181,21 @@ them.
 
 ## Assets and export
 
-| Tool                  | Input object                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------ |
-| `create_figma_image`  | `data_base64` or public HTTP(S) `url`; private-network URLs are rejected             |
-| `get_figma_image`     | `hash`                                                                               |
-| `create_figma_media`  | `kind: "video"`, `data_base64`                                                       |
-| `list_figma_shaders`  | No input to list; `import_id` to materialize one shader                              |
-| `load_figma_brushes`  | `brush_type` (`STRETCH` or `SCATTER`)                                                |
-| `export_figma_nodes`  | Up to 20 `node_ids`, optional Plugin API `settings` for PNG/JPG/SVG/PDF/JSON_REST_V1 |
-| `encode_figma_binary` | `data_base64`, optional `operation: "inspect"` or `"normalize_base64"`               |
+| Tool                   | Input object                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `create_figma_image`   | `data_base64` or public HTTP(S) `url`; private-network URLs are rejected             |
+| `get_figma_image`      | `hash`                                                                               |
+| `create_figma_media`   | `kind: "video"`, `data_base64`                                                       |
+| `list_figma_shaders`   | No input to list; `import_id` to materialize one shader                              |
+| `load_figma_brushes`   | `brush_type` (`STRETCH` or `SCATTER`)                                                |
+| `export_figma_nodes`   | Up to 20 `node_ids`, optional Plugin API `settings` for PNG/JPG/SVG/PDF/JSON_REST_V1 |
+| `get_figma_screenshot` | `node_id`, optional `scale` (`0.01`–`4`) and `contents_only`; returns inline PNG     |
+| `encode_figma_binary`  | `data_base64`, optional `operation: "inspect"` or `"normalize_base64"`               |
+
+`get_figma_screenshot` is the visual-inspection path: its result contains a typed MCP
+`image` content block, so capable clients can present the rendered layer directly instead of
+showing base64 inside JSON text. `export_figma_nodes` remains the general multi-node and
+multi-format export API.
 
 ## Prototype, viewport, feedback, and file state
 

@@ -44,10 +44,16 @@ public sealed partial class FigmaTools
         Destructive = false,
         Idempotent = false,
         OpenWorld = false)]
-    [Description("Clone up to 100 explicit scene nodes and return source-to-clone mappings.")]
+    [Description(
+        "Clone up to 100 scene nodes, optionally directly into a target parent and preserve "
+        + "their transforms relative to source and target anchors. Returns local and absolute "
+        + "geometry.")]
     public Task<object> CloneFigmaNodes(
         [Description("The live Figma plugin connection UUID.")] string connection_id,
-        [Description("Object with node_ids, optional dry_run, and optional idempotency_key.")]
+        [Description(
+            "Object with node_ids; optional parent_id/index; optional placement with mode "
+            + "preserve_relative_transform, source_anchor_id, and target_anchor_id; "
+            + "optional dry_run and idempotency_key.")]
         JsonElement input,
         CancellationToken cancellationToken) =>
         InvokeAsync(connection_id, "clone_figma_nodes", input, cancellationToken);
@@ -58,7 +64,9 @@ public sealed partial class FigmaTools
         Destructive = true,
         Idempotent = true,
         OpenWorld = false)]
-    [Description("Reparent or reorder nodes with explicit parent IDs and optional child indices.")]
+    [Description(
+        "Reparent or reorder nodes with explicit parent IDs and optional child indices. "
+        + "Returns before/after local and absolute geometry.")]
     public Task<object> MoveFigmaNodes(
         [Description("The live Figma plugin connection UUID.")] string connection_id,
         [Description("Object with moves containing node_id, parent_id, and optional index.")]

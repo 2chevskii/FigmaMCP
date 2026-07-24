@@ -58,24 +58,33 @@ public sealed partial class FigmaTools
         JsonElement? input,
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParseExact(connectionId, "D", out var id))
-        {
-            return Error("connection_not_found", ConnectionNotFoundMessage, connectionId);
-        }
-
         try
         {
-            var payload = await _registry.RequestAsync(
-                id,
-                method,
-                BridgePayloadCodec.Encode(input),
-                cancellationToken);
-            return BridgePayloadCodec.Decode(payload);
+            return await InvokePayloadAsync(connectionId, method, input, cancellationToken);
         }
         catch (BridgeRpcException exception)
         {
-            return Error(exception.Code, exception.Message, id.ToString("D"));
+            return Error(exception.Code, exception.Message, connectionId);
         }
+    }
+
+    private async Task<JsonElement> InvokePayloadAsync(
+        string connectionId,
+        string method,
+        JsonElement? input,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParseExact(connectionId, "D", out var id))
+        {
+            throw new BridgeRpcException("connection_not_found", ConnectionNotFoundMessage);
+        }
+
+        var payload = await _registry.RequestAsync(
+            id,
+            method,
+            BridgePayloadCodec.Encode(input),
+            cancellationToken);
+        return BridgePayloadCodec.Decode(payload);
     }
 
     private static object Error(string code, string message, string connectionId)

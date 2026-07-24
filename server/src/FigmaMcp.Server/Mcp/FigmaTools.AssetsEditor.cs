@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
+using FigmaMcp.Server.Connections;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace FigmaMcp.Server.Mcp;
@@ -61,6 +63,64 @@ public sealed partial class FigmaTools
         [Description("Object with node_ids and optional Figma export settings.")] JsonElement input,
         CancellationToken cancellationToken) =>
         InvokeAsync(connection_id, "export_figma_nodes", input, cancellationToken);
+
+    [McpServerTool(Name = "get_figma_screenshot", Title = "Get Figma screenshot",
+        ReadOnly = true, Destructive = false, OpenWorld = false)]
+    [Description("Render one Figma node and return it as inline MCP image content.")]
+    public async Task<CallToolResult> GetFigmaScreenshot(
+        [Description("The live Figma plugin connection UUID.")] string connection_id,
+        [Description(
+            "Object with node_id, optional scale from 0.01 through 4, and optional contents_only.")]
+        JsonElement input,
+        CancellationToken cancellationToken)
+    {
+        if (!TryReadScreenshotInput(input, out var nodeId, out var scale, out var contentsOnly,
+            out var validationError))
+        {
+            return ScreenshotError(
+                "invalid_argument",
+                validationError,
+                connection_id);
+        }
+
+        var settings = new Dictionary<string, object?>
+        {
+            ["format"] = "PNG",
+            ["constraint"] = new
+            {
+                type = "SCALE",
+                value = scale,
+            },
+        };
+        if (contentsOnly is not null)
+        {
+            settings["contentsOnly"] = contentsOnly.Value;
+        }
+
+        var exportInput = JsonSerializer.SerializeToElement(new
+        {
+            node_ids = new[] { nodeId },
+            settings,
+        });
+
+        try
+        {
+            var response = await InvokePayloadAsync(
+                connection_id,
+                "export_figma_nodes",
+                exportInput,
+                cancellationToken);
+            return CreateScreenshotResult(response, nodeId);
+        }
+        catch (BridgeRpcException exception)
+        {
+            return ScreenshotError(exception.Code, exception.Message, connection_id);
+        }
+        catch (FormatException exception)
+        {
+            return ScreenshotError("invalid_export", exception.Message, connection_id);
+        }
+    }
 
     [McpServerTool(Name = "encode_figma_binary", Title = "Inspect Figma binary",
         ReadOnly = true, Destructive = false, OpenWorld = false)]
@@ -145,4 +205,117 @@ public sealed partial class FigmaTools
         JsonElement input,
         CancellationToken cancellationToken) =>
         InvokeAsync(connection_id, "set_figma_file_thumbnail_node", input, cancellationToken);
+
+    internal static CallToolResult CreateScreenshotResult(JsonElement response, string nodeId)
+    {
+        if (response.ValueKind != JsonValueKind.Object
+            || !response.TryGetProperty("exports", out var exports)
+            || exports.ValueKind != JsonValueKind.Array
+            || exports.GetArrayLength() != 1)
+        {
+            throw new FormatException("Figma returned an invalid screenshot export response.");
+        }
+
+        var export = exports[0];
+        if (export.ValueKind != JsonValueKind.Object
+            || !export.TryGetProperty("data_base64", out var encodedData)
+            || encodedData.ValueKind != JsonValueKind.String)
+        {
+            throw new FormatException("Figma did not return PNG bytes for the requested node.");
+        }
+
+        var bytes = Convert.FromBase64String(encodedData.GetString()!);
+        return new CallToolResult
+        {
+            Content =
+            [
+                new TextContentBlock
+                {
+                    Text = $"Rendered Figma node {nodeId} as a {bytes.Length}-byte PNG.",
+                },
+                ImageContentBlock.FromBytes(bytes, "image/png"),
+            ],
+            StructuredContent = JsonSerializer.SerializeToElement(new
+            {
+                node_id = nodeId,
+                mime_type = "image/png",
+                byte_length = bytes.Length,
+            }),
+        };
+    }
+
+    private static bool TryReadScreenshotInput(
+        JsonElement input,
+        out string nodeId,
+        out double scale,
+        out bool? contentsOnly,
+        out string validationError)
+    {
+        nodeId = string.Empty;
+        scale = 1;
+        contentsOnly = null;
+        validationError = string.Empty;
+
+        if (input.ValueKind != JsonValueKind.Object)
+        {
+            validationError = "input must be an object.";
+            return false;
+        }
+
+        if (!input.TryGetProperty("node_id", out var nodeIdElement)
+            || nodeIdElement.ValueKind != JsonValueKind.String
+            || string.IsNullOrWhiteSpace(nodeIdElement.GetString()))
+        {
+            validationError = "node_id must be a non-empty string.";
+            return false;
+        }
+
+        nodeId = nodeIdElement.GetString()!;
+
+        if (input.TryGetProperty("scale", out var scaleElement))
+        {
+            if (scaleElement.ValueKind != JsonValueKind.Number
+                || !scaleElement.TryGetDouble(out scale)
+                || !double.IsFinite(scale)
+                || scale is < 0.01 or > 4)
+            {
+                validationError = "scale must be a finite number from 0.01 through 4.";
+                return false;
+            }
+        }
+
+        if (input.TryGetProperty("contents_only", out var contentsOnlyElement))
+        {
+            if (contentsOnlyElement.ValueKind is not JsonValueKind.True
+                and not JsonValueKind.False)
+            {
+                validationError = "contents_only must be a boolean.";
+                return false;
+            }
+
+            contentsOnly = contentsOnlyElement.GetBoolean();
+        }
+
+        return true;
+    }
+
+    private static CallToolResult ScreenshotError(
+        string code,
+        string message,
+        string connectionId)
+    {
+        var error = JsonSerializer.SerializeToElement(Error(code, message, connectionId));
+        return new CallToolResult
+        {
+            IsError = true,
+            Content =
+            [
+                new TextContentBlock
+                {
+                    Text = error.GetRawText(),
+                },
+            ],
+            StructuredContent = error,
+        };
+    }
 }

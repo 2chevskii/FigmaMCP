@@ -108,16 +108,16 @@ motion, plugin/dev metadata, annotations, measurements, and editor-specific prop
 
 ### 3. Core node creation, structure, and property mutation
 
-| Proposed tool              | Purpose                                                                                                                                                    |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `create_figma_nodes`       | Create a bounded batch from discriminated DTOs for every node constructor supported by the active editor.                                                  |
-| `update_figma_nodes`       | Apply typed property patches to explicit nodes, including transforms, layout, appearance, export settings, prototype data, and editor-specific properties. |
-| `clone_figma_nodes`        | Clone nodes and return old-to-new ID mappings.                                                                                                             |
-| `move_figma_nodes`         | Reparent/reorder nodes using append/insert operations and explicit indices.                                                                                |
-| `delete_figma_nodes`       | Remove explicit nodes with dry-run support.                                                                                                                |
-| `resize_figma_nodes`       | Resize, resize without constraints, rescale, or lock/unlock aspect ratio.                                                                                  |
-| `combine_figma_nodes`      | Group, transform-group, flatten, ungroup, combine as variants, or perform union/subtract/intersect/exclude boolean operations.                             |
-| `set_figma_vector_network` | Replace vector networks and related vector-specific data.                                                                                                  |
+| Proposed tool              | Purpose                                                                                                                                                        |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_figma_nodes`       | Create a bounded batch from discriminated DTOs for every node constructor supported by the active editor.                                                      |
+| `update_figma_nodes`       | Apply typed property patches to explicit nodes, including transforms, layout, appearance, export settings, prototype data, and editor-specific properties.     |
+| `clone_figma_nodes`        | Clone nodes into an optional target parent, optionally preserving their transforms between source and target anchors; return old-to-new mappings and geometry. |
+| `move_figma_nodes`         | Reparent/reorder nodes using append/insert operations and explicit indices; return before/after local and absolute geometry.                                   |
+| `delete_figma_nodes`       | Remove explicit nodes with dry-run support.                                                                                                                    |
+| `resize_figma_nodes`       | Resize, resize without constraints, rescale, or lock/unlock aspect ratio.                                                                                      |
+| `combine_figma_nodes`      | Group, transform-group, flatten, ungroup, combine as variants, or perform union/subtract/intersect/exclude boolean operations.                                 |
+| `set_figma_vector_network` | Replace vector networks and related vector-specific data.                                                                                                      |
 
 `create_figma_nodes` should discriminate constructors such as rectangle, line, ellipse, polygon,
 star, vector, text, frame, component, page, page divider, slice, section, boolean operation, FigJam
@@ -169,15 +169,16 @@ API can inspect enabled libraries and import known assets; it cannot enable a li
 
 ### 7. Images, media, shaders, brushes, and export
 
-| Proposed tool         | Purpose                                                                                                                      |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `create_figma_image`  | Create an image from bounded bytes or a fetched URL and return its hash/size.                                                |
-| `get_figma_image`     | Resolve an image hash and expose bytes through a bounded MCP resource.                                                       |
-| `create_figma_media`  | Create supported video, GIF, link-preview, or editor-specific media nodes.                                                   |
-| `list_figma_shaders`  | List available shaders and import one by ID.                                                                                 |
-| `load_figma_brushes`  | Load a supported stretch/scatter brush family.                                                                               |
-| `export_figma_nodes`  | Export explicit nodes as PNG/JPG/SVG/PDF/JSON_REST_V1 with scale/constraint options and resource handles for binary results. |
-| `encode_figma_binary` | Base64 encode/decode only if protocol clients cannot transport binary resource chunks directly.                              |
+| Proposed tool          | Purpose                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `create_figma_image`   | Create an image from bounded bytes or a fetched URL and return its hash/size.                                                |
+| `get_figma_image`      | Resolve an image hash and expose bytes through a bounded MCP resource.                                                       |
+| `create_figma_media`   | Create supported video, GIF, link-preview, or editor-specific media nodes.                                                   |
+| `list_figma_shaders`   | List available shaders and import one by ID.                                                                                 |
+| `load_figma_brushes`   | Load a supported stretch/scatter brush family.                                                                               |
+| `export_figma_nodes`   | Export explicit nodes as PNG/JPG/SVG/PDF/JSON_REST_V1 with scale/constraint options and resource handles for binary results. |
+| `get_figma_screenshot` | Render one node as PNG and return it through a typed inline MCP image content block for direct visual inspection.            |
+| `encode_figma_binary`  | Base64 encode/decode only if protocol clients cannot transport binary resource chunks directly.                              |
 
 Arbitrary `figma.fetch` should not become a general network-proxy tool. URL-backed image/media
 creation may use it internally subject to the manifest allowlist, maximum response size, MIME checks,

@@ -188,6 +188,27 @@ export function nodeSummary(node: BaseNode): RpcResult {
   return result;
 }
 
+export function nodeGeometrySummary(node: BaseNode): RpcResult {
+  const result = nodeSummary(node);
+  if (!isSceneNode(node)) {
+    return result;
+  }
+
+  result.relative_transform = toSerializable(node.relativeTransform);
+  result.absolute_transform = toSerializable(node.absoluteTransform);
+  result.absolute_bounding_box = toSerializable(node.absoluteBoundingBox);
+  result.coordinate_parent_id = coordinateParent(node)?.id ?? null;
+  return result;
+}
+
+function coordinateParent(node: SceneNode): BaseNode | null {
+  let parent = node.parent;
+  while (parent?.type === "GROUP" || parent?.type === "BOOLEAN_OPERATION") {
+    parent = parent.parent;
+  }
+  return parent;
+}
+
 export function toSerializable(value: unknown, depth = 0): unknown {
   if (depth > 12) {
     return "[depth-limit]";

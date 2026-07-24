@@ -4,6 +4,7 @@ import {
   callApiMethod,
   idempotentMutation,
   isSceneNode,
+  nodeGeometrySummary,
   nodeSummary,
   objectArray,
   OperationError,
@@ -251,16 +252,64 @@ async function applyProperties(node: BaseNode, properties: RpcPayload): Promise<
 
 async function cloneNodes(payload: RpcPayload): Promise<RpcResult> {
   const nodeIds = stringArray(payload, "node_ids", { required: true, maxItems: 100 });
+  const nodes = await Promise.all(nodeIds.map(requireSceneNode));
+  const placement = await parseClonePlacement(payload);
+  const parentId =
+    optionalString(payload, "parent_id") ?? placement?.targetAnchor.parent?.id ?? undefined;
+  const parent = parentId ? await requireContainer(parentId) : undefined;
+  const index = optionalNumber(payload, "index", { integer: true, min: 0 });
+  if (index !== undefined && !parent) {
+    throw new OperationError("invalid_argument", "index requires parent_id or placement.");
+  }
+
   if (optionalBoolean(payload, "dry_run") ?? false) {
-    return { dry_run: true, would_clone: nodeIds };
+    return {
+      dry_run: true,
+      would_clone: nodes.map(nodeGeometrySummary),
+      parent_id: parent?.id ?? figma.currentPage.id,
+      index: index ?? null,
+      placement: placement?.summary ?? null,
+    };
   }
+
   const clones: RpcResult[] = [];
-  for (const nodeId of nodeIds) {
-    const node = await requireSceneNode(nodeId);
-    const clone = node.clone();
-    clones.push({ source_id: node.id, clone: nodeSummary(clone) });
+  const created: SceneNode[] = [];
+  try {
+    for (const [offset, node] of nodes.entries()) {
+      const clone = node.clone();
+      created.push(clone);
+      if (parent) {
+        const targetIndex = index === undefined ? undefined : index + offset;
+        if (targetIndex === undefined) {
+          appendChild(parent, clone);
+        } else {
+          const children = asApiRecord(parent).children as readonly BaseNode[];
+          insertChild(parent, Math.min(targetIndex, children.length), clone);
+        }
+      }
+      if (placement) {
+        preserveAnchorRelativeTransform(node, clone, placement);
+      }
+      clones.push({
+        source_id: node.id,
+        source: nodeGeometrySummary(node),
+        clone: nodeGeometrySummary(clone),
+      });
+    }
+  } catch (error) {
+    for (const clone of created) {
+      if (!clone.removed) {
+        clone.remove();
+      }
+    }
+    throw error;
   }
-  return { clones };
+
+  return {
+    clones,
+    parent_id: parent?.id ?? figma.currentPage.id,
+    placement: placement?.summary ?? null,
+  };
 }
 
 async function moveNodes(payload: RpcPayload): Promise<RpcResult> {
@@ -274,6 +323,7 @@ async function moveNodes(payload: RpcPayload): Promise<RpcResult> {
     if (node.type === "DOCUMENT") {
       throw new OperationError("invalid_node_type", "The document root cannot be moved.");
     }
+    const before = nodeGeometrySummary(node);
     const parent = await requireContainer(requiredString(move, "parent_id"));
     const index = optionalNumber(move, "index", { integer: true, min: 0 });
     if (index === undefined) {
@@ -282,9 +332,124 @@ async function moveNodes(payload: RpcPayload): Promise<RpcResult> {
       const children = asApiRecord(parent).children as readonly BaseNode[];
       insertChild(parent, Math.min(index, children.length), node);
     }
-    moved.push(nodeSummary(node));
+    const after = nodeGeometrySummary(node);
+    moved.push({ ...after, before, after });
   }
   return { moved };
+}
+
+type ClonePlacement = {
+  sourceAnchor: SceneNode;
+  targetAnchor: SceneNode;
+  targetAnchorTransform: Transform;
+  summary: RpcResult;
+};
+
+async function parseClonePlacement(payload: RpcPayload): Promise<ClonePlacement | undefined> {
+  if (payload.placement === undefined || payload.placement === null) {
+    return undefined;
+  }
+
+  const placement = asRecord(payload.placement, "placement");
+  const mode = optionalString(placement, "mode") ?? "preserve_relative_transform";
+  if (mode !== "preserve_relative_transform") {
+    throw new OperationError("invalid_argument", `Unknown clone placement mode ${mode}.`);
+  }
+
+  const sourceAnchor = await requireSceneNode(requiredString(placement, "source_anchor_id"));
+  const targetAnchor = await requireSceneNode(requiredString(placement, "target_anchor_id"));
+  if (!targetAnchor.parent) {
+    throw new OperationError("invalid_argument", "target_anchor_id must have a parent.");
+  }
+
+  return {
+    sourceAnchor,
+    targetAnchor,
+    targetAnchorTransform: copyTransform(targetAnchor.absoluteTransform),
+    summary: {
+      mode,
+      source_anchor_id: sourceAnchor.id,
+      target_anchor_id: targetAnchor.id,
+    },
+  };
+}
+
+function preserveAnchorRelativeTransform(
+  source: SceneNode,
+  clone: SceneNode,
+  placement: ClonePlacement,
+): void {
+  const sourceOffset = multiplyTransforms(
+    invertTransform(placement.sourceAnchor.absoluteTransform),
+    source.absoluteTransform,
+  );
+  const desiredAbsoluteTransform = multiplyTransforms(
+    placement.targetAnchorTransform,
+    sourceOffset,
+  );
+
+  // Figma's relativeTransform skips GROUP and BOOLEAN_OPERATION ancestors. Deriving
+  // the effective coordinate container from the clone's current transforms avoids
+  // hard-coding every container type and works after reparenting into a group.
+  const coordinateTransform = multiplyTransforms(
+    clone.absoluteTransform,
+    invertTransform(clone.relativeTransform),
+  );
+  clone.relativeTransform = multiplyTransforms(
+    invertTransform(coordinateTransform),
+    desiredAbsoluteTransform,
+  );
+  if (!transformsApproximatelyEqual(clone.absoluteTransform, desiredAbsoluteTransform)) {
+    throw new OperationError(
+      "unsupported_placement",
+      `Parent ${clone.parent?.id ?? "unknown"} controls layout and prevented anchor-relative placement.`,
+    );
+  }
+}
+
+export function multiplyTransforms(left: Transform, right: Transform): Transform {
+  return [
+    [
+      left[0][0] * right[0][0] + left[0][1] * right[1][0],
+      left[0][0] * right[0][1] + left[0][1] * right[1][1],
+      left[0][0] * right[0][2] + left[0][1] * right[1][2] + left[0][2],
+    ],
+    [
+      left[1][0] * right[0][0] + left[1][1] * right[1][0],
+      left[1][0] * right[0][1] + left[1][1] * right[1][1],
+      left[1][0] * right[0][2] + left[1][1] * right[1][2] + left[1][2],
+    ],
+  ];
+}
+
+export function invertTransform(transform: Transform): Transform {
+  const [[a, c, tx], [b, d, ty]] = transform;
+  const determinant = a * d - b * c;
+  if (Math.abs(determinant) < 1e-12) {
+    throw new OperationError("invalid_argument", "Cannot place relative to a singular transform.");
+  }
+
+  return [
+    [d / determinant, -c / determinant, (c * ty - d * tx) / determinant],
+    [-b / determinant, a / determinant, (b * tx - a * ty) / determinant],
+  ];
+}
+
+function copyTransform(transform: Transform): Transform {
+  return [
+    [transform[0][0], transform[0][1], transform[0][2]],
+    [transform[1][0], transform[1][1], transform[1][2]],
+  ];
+}
+
+function transformsApproximatelyEqual(
+  left: Transform,
+  right: Transform,
+  tolerance = 1e-5,
+): boolean {
+  return left.every((row, rowIndex) =>
+    row.every((value, columnIndex) => Math.abs(value - right[rowIndex][columnIndex]) <= tolerance),
+  );
 }
 
 async function deleteNodes(payload: RpcPayload): Promise<RpcResult> {
