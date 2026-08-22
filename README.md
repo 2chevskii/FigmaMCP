@@ -4,8 +4,10 @@ Figma MCP is a local companion for an open Figma document through the Figma Brid
 client starts a .NET process and communicates with it over STDIO, while the plugin connects to the
 same process through a loopback WebSocket.
 
-```text
-MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:3846/bridge ──> Figma plugin
+```mermaid
+flowchart LR
+    client[MCP client] <-->|stdin / stdout| companion[Local MCP companion]
+    companion <-->|WebSocket: /bridge| plugin[Figma Bridge plugin]
 ```
 
 ## Capabilities
@@ -69,12 +71,13 @@ redirect its `stdout`: it is reserved for MCP protocol traffic.
 
 ## Repository layout
 
-```text
-packages/
-  plugin/  Figma Bridge plugin
-  server/  .NET 10 MCP companion and tests
-scripts/   Local utilities, including MCP Inspector
-docs/      Architecture, development, and tool-contract documentation
+```mermaid
+flowchart TD
+    root[Repository] --> packages[packages]
+    packages --> plugin[plugin: Figma Bridge plugin]
+    packages --> server[server: .NET 10 MCP companion and tests]
+    root --> scripts[scripts: local utilities, including MCP Inspector]
+    root --> docs[docs: architecture, development, and tool-contract documentation]
 ```
 
 ## Documentation

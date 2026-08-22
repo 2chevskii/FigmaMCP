@@ -7,13 +7,13 @@ All runtime state is local to the user's machine and held in memory.
 
 ## Components and transports
 
-```text
-┌────────────┐    MCP / STDIO     ┌─────────────────────┐   WebSocket / MessagePack   ┌──────────────┐
-│ MCP client │ <────────────────> │ Local MCP companion │ <────────────────────────> │ Figma plugin │
-└────────────┘  stdin / stdout    └─────────────────────┘  127.0.0.1:3846/bridge      └──────────────┘
-                                          │                                                   │
-                                          └── in-memory live connection registry ──────────────┘
-                                                                                     Figma Plugin API
+```mermaid
+flowchart LR
+    client[MCP client] <-->|MCP / STDIO<br/>stdin / stdout| companion[Local MCP companion]
+    companion <-->|WebSocket / MessagePack<br/>127.0.0.1:3846/bridge| plugin[Figma plugin]
+    companion --- registry[(In-memory live connection registry)]
+    registry --- plugin
+    plugin --> api[Figma Plugin API]
 ```
 
 The process has two transport roles:

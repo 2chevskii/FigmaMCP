@@ -5,19 +5,19 @@
 The repository contains the local companion, the Figma Bridge plugin, their tests, and supporting
 documentation:
 
-```text
-.
-├── docs/
-├── packages/
-│   ├── plugin/
-│   │   ├── src/
-│   │   ├── tests/
-│   │   └── dist/                   # generated; not committed
-│   └── server/
-│       ├── src/FigmaMcp.Server/    # local STDIO MCP and loopback /bridge
-│       ├── tests/FigmaMcp.Server.Tests/
-│       └── FigmaMcp.slnx
-└── scripts/                         # local utilities, including MCP Inspector
+```mermaid
+flowchart TD
+    root[Repository root] --> docs[docs]
+    root --> packages[packages]
+    root --> scripts[scripts: local utilities, including MCP Inspector]
+    packages --> plugin[plugin]
+    plugin --> pluginSrc[src]
+    plugin --> pluginTests[tests]
+    plugin --> pluginDist[dist: generated, not committed]
+    packages --> server[server]
+    server --> serverSrc[src/FigmaMcp.Server: local STDIO MCP and loopback /bridge]
+    server --> serverTests[tests/FigmaMcp.Server.Tests]
+    server --> solution[FigmaMcp.slnx]
 ```
 
 ## Companion

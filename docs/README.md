@@ -5,10 +5,11 @@ starts the .NET process and exchanges protocol messages with it over STDIO.
 
 ## System overview
 
-```text
-MCP client ── STDIN / STDOUT ──> local companion ── loopback WebSocket ──> Figma Bridge plugin
-                                                                             │
-                                                                      Figma Plugin API
+```mermaid
+flowchart LR
+    client[MCP client] <-->|STDIN / STDOUT| companion[Local MCP companion]
+    companion <-->|Loopback WebSocket| plugin[Figma Bridge plugin]
+    plugin --> api[Figma Plugin API]
 ```
 
 The companion has two transport roles:
