@@ -1,21 +1,15 @@
-# Figma MCP — спецификация локального STDIO companion
+# Figma MCP Specification
 
-**Статус:** локальная архитектура реализована; требуется проверка полного сценария с Figma Desktop.
-**Платформа:** Windows x64.
+**Status:** The local architecture is implemented; the full Figma Desktop scenario still requires manual validation.
+**Platform:** Windows x64.
 **Runtime:** .NET 10.
-**MCP-транспорт:** STDIO.
-**Транспорт Bridge:** бинарный WebSocket с MessagePack, `figma-mcp-bridge.v2`.
+**MCP transport:** STDIO.
+**Bridge transport:** Binary WebSocket with MessagePack and the `figma-mcp-bridge.v2` subprotocol.
 
-> Важно: разделы, которые начинаются ниже с «Historical hosted specification», сохранены только как
-> история предыдущего решения. Они **не нормативны**, не должны использоваться для реализации и не
-> могут переопределять эту верхнюю спецификацию, `docs/ARCHITECTURE.md` или явное указание
-> пользователя.
+## Normative architecture
 
-## Нормативная целевая архитектура
-
-Figma MCP — один локальный companion для документов, в которых пользователь открыл существующий
-Figma Bridge plugin. MCP-клиент запускает companion как дочерний процесс. MCP-сообщения проходят
-только через STDIO; companion не является hosted- или multi-tenant-сервисом.
+Figma MCP is a local companion for Figma documents with the Figma Bridge plugin open. An MCP client
+starts the companion as a child process and exchanges MCP messages over STDIO.
 
 ```text
 MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:3846/bridge ──> Bridge plugin
@@ -23,31 +17,24 @@ MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:384
                                                                                   Figma Plugin API
 ```
 
-### Входит в целевую версию
+### Components and scope
 
-- Один .NET-процесс `FigmaMcp.Server`.
-- Официальный MCP SDK со STDIO transport.
-- Локальный loopback WebSocket endpoint `/bridge` для плагина.
-- In-memory registry живых plugin-подключений и pending RPC.
-- Текущий MCP tool contract: явный `connection_id`, bounded typed payload, ограничения размера,
-  30-секундный bridge deadline и идемпотентность мутаций.
-- Bridge plugin без изменения протокола; его access token удалён из UI, storage и bridge URL.
+- One .NET process: `FigmaMcp.Server`.
+- The official MCP SDK with the STDIO transport.
+- A loopback WebSocket endpoint at `/bridge` for the plugin.
+- An in-memory registry of live plugin connections and pending RPCs.
+- The MCP tool contract in `docs/TOOLS.md`, including explicit `connection_id`, bounded typed
+  payloads, a 30-second bridge deadline, and idempotent mutations.
+- The existing Bridge plugin protocol and its local companion URL setting. The bridge does not
+  require or transmit an access token.
 
-### Исключено и подлежит удалению
+### STDIO contract
 
-- Streamable HTTP `/mcp`, HTTP/SSE, bearer/query tokens и публичный ingress.
-- User/admin web-приложения и API, command buffer, межсервисные API и очереди.
-- PostgreSQL, Redis, Docker Compose, Kubernetes и cloud/deployment-конфигурация.
-- Регистрация, browser sessions, CAPTCHA, роли, personal access tokens и hosted-аутентификация.
-- Hosted-тесты, документация эксплуатации и зависимости, нужные только перечисленным компонентам.
+The companion reads the MCP protocol from `stdin` and writes protocol responses **only** to `stdout`.
+Logs, diagnostics, startup information, and errors go to `stderr`. Do not write human-readable text,
+logger output, or banners to `stdout`.
 
-### STDIO-контракт
-
-Companion читает MCP-протокол из `stdin` и пишет протокольные ответы **только** в `stdout`. Логи,
-диагностика и startup/errors выводятся в `stderr`. Нельзя добавлять человеческий текст, логгер или
-баннер в stdout.
-
-MCP-клиент конфигурирует исполняемый файл, например:
+An MCP client configures the executable, for example:
 
 ```json
 {
@@ -57,65 +44,49 @@ MCP-клиент конфигурирует исполняемый файл, н�
 }
 ```
 
-### Неизменяемый Bridge
+### Bridge protocol
 
-До отдельного указания пользователя не менять `plugin/`: source, manifest, UI, настройки и protocol.
-Companion обязан быть совместим с текущим bridge:
+Do not change `packages/plugin/` source, manifest, UI, settings, or the bridge protocol without an
+explicit user request. The companion is compatible with this protocol:
 
-- путь `/bridge`, подпротокол `figma-mcp-bridge.v2`;
-- один бинарный WebSocket frame содержит один MessagePack map;
-- envelopes `hello`, `hello_ack`, `context_changed`, `request`, `response`, `error`, `ping`, `pong`;
-- канонические UUID в нижнем регистре и UTC ISO-8601 timestamps;
-- общий лимит сообщения 16 MiB и base64 binary payload до 12 MiB;
-- только allowlisted typed operations, без JavaScript execution или произвольной reflection.
+- Path `/bridge` and subprotocol `figma-mcp-bridge.v2`.
+- One MessagePack map in each binary WebSocket frame.
+- Envelopes: `hello`, `hello_ack`, `context_changed`, `request`, `response`, `error`, `ping`, and `pong`.
+- Lowercase canonical UUIDs and UTC ISO-8601 timestamps.
+- A 16 MiB message limit and a 12 MiB limit for base64-encoded binary payloads.
+- Allowlisted typed operations only; no JavaScript execution or arbitrary reflection.
 
-Bridge plugin настраивает только адрес локального companion. Он не хранит и не передаёт access token;
-не добавлять новую аутентификацию без отдельного решения.
+### Loopback boundary
 
-### Локальный bridge boundary
+- Listen only on `127.0.0.1:3846/bridge`; do not bind to `0.0.0.0`, a LAN interface, or IPv6-any.
+- Accept only `127.0.0.1:<port>` and `localhost:<port>` Host values.
+- Accept only WebSocket upgrades using `figma-mcp-bridge.v2`, binary frames, and a missing or `null`
+  Origin. Reject text frames and other browser origins.
 
-- Слушать только `127.0.0.1:3846/bridge` по умолчанию; не использовать `0.0.0.0`, LAN или IPv6-any.
-- Принимать только `127.0.0.1:<port>` и `localhost:<port>` в Host.
-- Принимать только WebSocket upgrade с `figma-mcp-bridge.v2`, бинарные frames и отсутствующий либо
-  `null` Origin; отклонять text frames и иные browser origins.
-- Нельзя трактовать отсутствие hosted-инфраструктуры как разрешение открыть bridge в сеть.
+### Connection and tool semantics
 
-### Connection и tool semantics
+1. The plugin sends `hello`; the companion validates it, registers the connection, and returns `hello_ack`.
+2. The MCP client calls `list_figma_connections`, then passes the selected live `connection_id` to
+   every document-specific tool.
+3. Requests for one connection execute sequentially; requests for different connections can execute
+   concurrently. Responses are matched by `request_id`.
+4. A `connection_id` identifies a plugin invocation, not a persistent Figma file. A replacement
+   connection uses compare-and-swap, so a stale socket cannot remove the replacement.
+5. Disconnection completes pending requests with a controlled MCP error. Restarting the companion
+   clears only in-memory state, and the plugin reconnects normally.
 
-1. Plugin отправляет `hello`; companion валидирует его, сохраняет connection и отвечает `hello_ack`.
-2. MCP-клиент вызывает `list_figma_connections`, затем передаёт выбранный живой `connection_id` в
-   каждый document-specific tool.
-3. Запросы одного connection выполняются последовательно; разные connections могут выполняться
-   параллельно. Ответы сопоставляются по `request_id`.
-4. `connection_id` означает plugin invocation, а не постоянный Figma-файл. Replacement connection
-   устанавливается compare-and-swap: stale socket не может удалить replacement.
-5. Disconnect завершает pending запросы контролируемой MCP-ошибкой. Перезапуск companion очищает
-   только in-memory state; плагин должен переподключиться штатно.
+### Required validation
 
-Не менять существующий tool catalog из `docs/TOOLS.md` только ради смены MCP-транспорта.
+- Server: restore, formatting check, build, and test.
+- Plugin: formatting check, lint, type-check, test, and build.
+- End-to-end: a real STDIO client, Figma Desktop, and the loopback-only bridge.
+- Verify that companion `stdout` contains MCP protocol messages only.
 
-### Очерёдность миграции
+### Related documentation
 
-1. Удалены hosted-проекты, их тесты, инфраструктура и package/project references.
-2. В solution оставлены local server и его тесты; server владеет registry и `/bridge`.
-3. MCP HTTP transport заменён на STDIO без изменения tool contract.
-4. Из plugin удалена поддержка access token без изменения bridge protocol.
-5. Собрать и проверить цепочку: STDIO initialize/tool listing → plugin hello →
-   `list_figma_connections` → document-specific tool → Figma response.
-
-### Обязательная проверка
-
-- Для server: restore, format-check, build и test.
-- Для plugin: `format:check`, lint, typecheck, test и build.
-- Проверить реальный STDIO-клиент, Figma Desktop и loopback-only bridge.
-- Убедиться, что stdout companion содержит исключительно MCP-протокол.
-- Не создавать новые hosted-тесты, сервисы, контейнеры, зависимости или deployment-конфигурацию.
-
-### Связанные документы
-
-- `AGENTS.md` — инструкция и карта документации для агентов.
-- `docs/README.md` — обзор и план миграции.
-- `docs/ARCHITECTURE.md` — детали transport, lifecycle и security boundary.
-- `docs/DEVELOPMENT.md` — структура, сборка и локальный сценарий проверки.
-- `docs/TOOLS.md` — нормативный MCP tool contract.
-- `docs/PLUGIN_API_TOOL_COVERAGE.md` — границы покрытия Figma Plugin API.
+- `AGENTS.md` — agent instructions and documentation map.
+- `docs/README.md` — product overview and entry points.
+- `docs/ARCHITECTURE.md` — transports, lifecycle, and security boundary.
+- `docs/DEVELOPMENT.md` — repository layout, build commands, and local validation.
+- `docs/TOOLS.md` — normative MCP tool contract.
+- `docs/PLUGIN_API_TOOL_COVERAGE.md` — Figma Plugin API coverage and limits.

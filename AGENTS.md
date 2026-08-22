@@ -1,79 +1,68 @@
-# Контекст проекта для агентов
+# Project context for agents
 
-## Проект
+## Project
 
-`figma-mcp` переделывается из hosted-системы в локальный companion для Figma. MCP-клиент запускает
-один .NET-процесс и общается с ним через STDIO. Этот процесс одновременно обслуживает только
-loopback WebSocket `/bridge` для существующего Figma Bridge plugin.
+`figma-mcp` is a local Figma companion. An MCP client starts one .NET process and communicates with
+it through STDIO. The process also serves the loopback WebSocket `/bridge` for the Figma Bridge plugin.
 
-Bridge plugin меняется только в явно запрошенном объёме. В этой миграции из него удалена поддержка
-access token; не менять его source, manifest, UI, настройки или `figma-mcp-bridge.v2` сверх этого
-без явного указания пользователя.
+Change the Bridge plugin only within the scope explicitly requested by the user. Do not change its
+source, manifest, UI, settings, or `figma-mcp-bridge.v2` protocol without explicit direction.
 
-Не возвращать в проект hosted-возможности: HTTP `/mcp`, public ingress, web/API-приложения, command
-buffer, PostgreSQL/Redis, Docker/Compose, Kubernetes/cloud deployment, account/token auth и их
-инфраструктуру. Удаление существующих hosted-артефактов — часть текущей миграции, когда это входит в
-задачу пользователя.
+## Required reading
 
-## Обязательное чтение
+Read these documents in order before architecture or server changes:
 
-Читайте документы в этом порядке перед архитектурными или серверными изменениями:
-
-1. [`.agents/SPEC.md`](.agents/SPEC.md) — нормативная целевая спецификация и scope миграции.
-2. [`docs/README.md`](docs/README.md) — назначение продукта и порядок работ.
-3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — транспорты, bridge lifecycle, state и security
+1. [`.agents/SPEC.md`](.agents/SPEC.md) — normative specification and project scope.
+2. [`docs/README.md`](docs/README.md) — product overview and entry points.
+3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — transports, bridge lifecycle, state, and security
    boundary.
-4. [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — целевая структура проекта, команды сборки и
-   проверка.
-5. [`docs/TOOLS.md`](docs/TOOLS.md) — текущий MCP tool contract: схемы, `connection_id`, лимиты и
-   ошибки.
-6. [`docs/PLUGIN_API_TOOL_COVERAGE.md`](docs/PLUGIN_API_TOOL_COVERAGE.md) — покрытие Figma Plugin
-   API, отложенные возможности и ограничения manifest.
+4. [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — repository layout, build commands, and validation.
+5. [`docs/TOOLS.md`](docs/TOOLS.md) — MCP tool contract, schemas, `connection_id`, limits, and errors.
+6. [`docs/PLUGIN_API_TOOL_COVERAGE.md`](docs/PLUGIN_API_TOOL_COVERAGE.md) — Figma Plugin API coverage,
+   deferred capabilities, and manifest constraints.
 
-Публичные документы в корне репозитория дополняют эту техническую документацию:
+The public repository documents complement this technical documentation:
 
-- [`README.md`](README.md) — краткое описание, быстрый запуск и состояние готовности;
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — правила подготовки изменений;
-- [`.github/SECURITY.md`](.github/SECURITY.md) — порядок сообщения об уязвимостях.
+- [`README.md`](README.md) — overview, quick start, and validation status.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution requirements.
+- [`.github/SECURITY.md`](.github/SECURITY.md) — vulnerability reporting.
 
-При противоречии используйте следующий приоритет:
-последняя явная инструкция пользователя → `AGENTS.md` → верхняя нормативная часть
-`.agents/SPEC.md` → `docs/ARCHITECTURE.md` → остальные документы → существующий код. Архивная
-hosted-часть внизу `SPEC.md` не является архитектурным прецедентом.
+When documents conflict, use this precedence:
+the latest explicit user instruction → `AGENTS.md` → the normative sections of `.agents/SPEC.md` →
+`docs/ARCHITECTURE.md` → other documents → existing code.
 
-## Локальные agent skills
+## Local agent skills
 
-- [`.agents/skills/dotnet-csharpier/SKILL.md`](.agents/skills/dotnet-csharpier/SKILL.md) — форматирование
-  и проверка C#/XML server-проекта через локальный .NET tool CSharpier. Используйте для задач, которые
-  явно затрагивают форматирование в `server/`.
-- [`.agents/skills/plugin-prettier/SKILL.md`](.agents/skills/plugin-prettier/SKILL.md) — форматирование
-  и проверка Figma plugin через локальный npm-пакет Prettier. Используйте для задач форматирования в
-  `plugin/`.
-- [`.agents/skills/repository-commits/SKILL.md`](.agents/skills/repository-commits/SKILL.md) — подготовка
-  и создание Conventional Commits с разбиением несвязанных изменений на логические и временные группы.
-  Используйте только когда пользователь явно просит создать коммиты.
+- [`.agents/skills/dotnet-csharpier/SKILL.md`](.agents/skills/dotnet-csharpier/SKILL.md) formats and
+  checks the C#/XML server project with the local CSharpier .NET tool. Use it for formatting work in
+  `packages/server/`.
+- [`.agents/skills/plugin-prettier/SKILL.md`](.agents/skills/plugin-prettier/SKILL.md) formats and
+  checks the Figma plugin through its local Prettier package. Use it for formatting work in
+  `packages/plugin/`.
+- [`.agents/skills/repository-commits/SKILL.md`](.agents/skills/repository-commits/SKILL.md) prepares
+  Conventional Commits and groups unrelated changes by purpose and timing. Use it only when the user
+  explicitly requests commits.
 
-## Инварианты реализации
+## Implementation invariants
 
-- MCP использует STDIO: читать протокол из `stdin`, писать протокол только в `stdout`, а логи и
-  диагностику — в `stderr`.
-- Bridge остаётся WebSocket/MessagePack `figma-mcp-bridge.v2` на `127.0.0.1:3846/bridge`; не
-  привязывать его к внешней сети.
-- Все document-specific MCP-инструменты требуют живой явный `connection_id`.
-- Реестр plugin-подключений и pending RPC живут в памяти; запросы для одного connection выполняются
-  последовательно, а stale socket не удаляет replacement connection.
-- Сохранять bounded typed payload, лимиты размера, 30-секундный deadline bridge RPC и
-  идемпотентность мутаций.
-- Не добавлять БД, сторонние сервисы, пакеты, тестовую инфраструктуру или конфигурацию вне явно
-  запрошенного scope.
+- MCP reads the protocol from `stdin`, writes protocol messages only to `stdout`, and writes logs and
+  diagnostics to `stderr`.
+- The bridge uses WebSocket/MessagePack `figma-mcp-bridge.v2` at `127.0.0.1:3846/bridge`; do not bind
+  it to an external interface.
+- Every document-specific MCP tool requires a live explicit `connection_id`.
+- The plugin connection registry and pending RPCs are in memory. Requests for one connection run
+  sequentially, and a stale socket cannot remove a replacement connection.
+- Preserve bounded typed payloads, size limits, a 30-second bridge RPC deadline, and idempotent
+  mutations.
+- Do not add databases, external services, packages, test infrastructure, or configuration beyond
+  the user's explicit scope.
 
-## Рабочие правила
+## Working rules
 
-- Перед изменением смотрите `git status --short`: working tree может содержать несвязанные изменения
-  пользователя. Не отменяйте и не перезаписывайте их без явного разрешения.
-- Для server-проектов используйте .NET 10 и central package management; для plugin используйте
-  существующие npm scripts.
-- После содержательного изменения запускайте уместные сборку и тесты. Для документации минимум —
+- Before changing files, inspect `git status --short`: the worktree can contain unrelated user edits.
+  Do not revert or overwrite them without explicit permission.
+- Use .NET 10 and central package management for server projects; use the existing npm scripts for the plugin.
+- After a substantive change, run appropriate builds and tests. Documentation changes require at least
   `git diff --check`.
-- Если изменение затрагивает transport, bridge protocol, MCP tools или plugin, сначала сверяйтесь с
-  соответствующим документом из списка выше и обновляйте документацию вместе с кодом.
+- When a change affects a transport, the bridge protocol, MCP tools, or the plugin, consult the
+  corresponding documents above and update documentation with the code.

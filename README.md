@@ -1,93 +1,93 @@
 # Figma MCP
 
-Локальный MCP companion для работы с открытым документом Figma через Figma Bridge plugin.
-MCP-клиент запускает .NET-процесс и общается с ним по STDIO; plugin подключается к этому же
-процессу только по loopback WebSocket. В проекте нет hosted-сервиса, аккаунтов, токенов или
-внешней инфраструктуры.
+Figma MCP is a local companion for an open Figma document through the Figma Bridge plugin. The MCP
+client starts a .NET process and communicates with it over STDIO, while the plugin connects to the
+same process through a loopback WebSocket.
 
 ```text
 MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:3846/bridge ──> Figma plugin
 ```
 
-## Возможности
+## Capabilities
 
-- MCP-over-STDIO: протокол использует только `stdin` и `stdout`; диагностика уходит в `stderr`.
-- Figma Bridge на MessagePack WebSocket `figma-mcp-bridge.v2`, доступный только на loopback.
-- Явный `connection_id` для инструментов, работающих с документом.
-- In-memory registry подключений, последовательные RPC для одного подключения и bounded payload.
-- Локальные инструменты для чтения и редактирования Figma Design-документов.
+- MCP over STDIO: the protocol uses `stdin` and `stdout`, while diagnostics go to `stderr`.
+- A loopback-only MessagePack WebSocket bridge using `figma-mcp-bridge.v2`.
+- Explicit `connection_id` values for document-specific tools.
+- An in-memory connection registry, sequential RPC per connection, and bounded payloads.
+- Local tools for reading and editing Figma Design documents.
 
-Подробный контракт инструментов — в [docs/TOOLS.md](docs/TOOLS.md), ограничения Plugin API — в
-[docs/PLUGIN_API_TOOL_COVERAGE.md](docs/PLUGIN_API_TOOL_COVERAGE.md).
+The [tool reference](docs/TOOLS.md) defines the contract, and [Plugin API coverage](docs/PLUGIN_API_TOOL_COVERAGE.md)
+describes Figma API capabilities and limits.
 
-## Требования
+## Requirements
 
-- Windows x64;
-- .NET SDK 10 (версия зафиксирована в [server/global.json](server/global.json));
-- Node.js и npm для сборки Figma plugin и запуска MCP Inspector;
-- Figma Desktop для ручной проверки plugin в реальном документе.
+- Windows x64.
+- .NET SDK 10, pinned in [packages/server/global.json](packages/server/global.json).
+- Node.js and npm to build the Figma plugin and run MCP Inspector.
+- Figma Desktop for manual validation in a real document.
 
-## Быстрый локальный запуск
+## Quick start
 
-1. Соберите companion:
-
-   ```powershell
-   dotnet build .\server\FigmaMcp.slnx --configuration Release
-   ```
-
-2. Соберите Bridge plugin:
+1. Build the companion:
 
    ```powershell
-   npm ci --prefix .\plugin
-   npm run build --prefix .\plugin
+   dotnet build .\packages\server\FigmaMcp.slnx --configuration Release
    ```
 
-3. В Figma Desktop импортируйте `plugin/dist/manifest.json` как development plugin и откройте его в
-   нужном документе. Оставьте адрес companion `http://127.0.0.1:3846`.
-
-4. Для проверки MCP-сессии запустите Inspector. Скрипт соберёт сервер и передаст его Inspector как
-   STDIO-процесс:
+2. Build the Bridge plugin:
 
    ```powershell
-   .\Start-McpInspector.ps1
+   npm ci --prefix .\packages\plugin
+   npm run build --prefix .\packages\plugin
    ```
 
-После подключения plugin сначала вызовите `list_figma_connections`, затем передавайте полученный
-`connection_id` в document-specific инструменты.
+3. In Figma Desktop, import `packages/plugin/dist/manifest.json` as a development plugin and open it
+   in the desired document. Keep the companion URL at `http://127.0.0.1:3846`.
 
-## Подключение к MCP-клиенту
+4. Start Inspector to verify an MCP session. The script builds the server and passes it to Inspector
+   as a STDIO process:
 
-Для самостоятельного бинарника опубликуйте server под Windows:
+   ```powershell
+   .\scripts\Start-McpInspector.ps1
+   ```
+
+After the plugin connects, call `list_figma_connections` and pass the returned `connection_id` to
+document-specific tools.
+
+## Connect an MCP client
+
+To publish a standalone Windows binary:
 
 ```powershell
-dotnet publish .\server\src\FigmaMcp.Server\FigmaMcp.Server.csproj `
+dotnet publish .\packages\server\src\FigmaMcp.Server\FigmaMcp.Server.csproj `
   --configuration Release `
   -p:PublishProfile=win-x64
 ```
 
-Затем укажите созданный `figma-mcp-server.exe` как команду MCP-сервера в настройках клиента. Не
-перенаправляйте его `stdout`: это исключительно поток MCP-протокола.
+Configure the generated `figma-mcp-server.exe` as the MCP server command in the client. Do not
+redirect its `stdout`: it is reserved for MCP protocol traffic.
 
-## Структура
+## Repository layout
 
 ```text
-plugin/  Figma Bridge plugin
-server/  .NET 10 MCP companion и тесты
-docs/    архитектура, разработка и контракт инструментов
+packages/
+  plugin/  Figma Bridge plugin
+  server/  .NET 10 MCP companion and tests
+scripts/   Local utilities, including MCP Inspector
+docs/      Architecture, development, and tool-contract documentation
 ```
 
-## Документация
+## Documentation
 
-- [Архитектура](docs/ARCHITECTURE.md)
-- [Разработка и проверки](docs/DEVELOPMENT.md)
-- [Нормативная спецификация](.agents/SPEC.md)
-- [Вклад в проект](CONTRIBUTING.md)
-- [Безопасность](.github/SECURITY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development and validation](docs/DEVELOPMENT.md)
+- [Normative specification](.agents/SPEC.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](.github/SECURITY.md)
 
-## Состояние и границы
+## Validation status
 
-Сервер и синтетические bridge-проверки запускаются локально. Полный сценарий всё ещё требует
-ручной проверки в Figma Desktop: импорт development plugin, подключение к bridge и выполнение
-вызова к реальному документу.
+The server and synthetic bridge tests run locally. The full scenario requires a manual Figma Desktop
+check: import the development plugin, connect the bridge, and run a tool against a real document.
 
-Проект не аффилирован с Figma и распространяется по [лицензии MIT](LICENSE).
+This project is not affiliated with Figma and is distributed under the [MIT License](LICENSE).

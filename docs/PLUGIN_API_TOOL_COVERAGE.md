@@ -1,11 +1,9 @@
-# Figma Plugin API coverage proposal
-
-Research date: 2026-07-23
+# Figma Plugin API coverage
 
 ## Scope and source of truth
 
-This proposal maps the public Figma Plugin API to an MCP surface for the local companion architecture.
-The review used Figma's official Plugin API reference, including:
+This document maps the public Figma Plugin API to an MCP surface for the local companion architecture.
+It uses Figma's official Plugin API reference, including:
 
 - [API reference overview](https://developers.figma.com/docs/plugins/api/api-reference/)
 - [the `figma` global object](https://developers.figma.com/docs/plugins/api/figma/)
@@ -24,14 +22,14 @@ The official `@figma/plugin-typings` package is the machine-readable companion t
 reference. Version `1.131.0`, currently resolved by this repository, was used to check that no public
 interface family was omitted.
 
-This is an API-family coverage proposal, not a recommendation to expose one MCP tool for every
+This is an API-family coverage catalog, not a recommendation to expose one MCP tool for every
 TypeScript property. The Plugin API contains hundreds of node properties. A smaller set of
 composable, typed, bounded tools gives complete practical coverage without producing an unusable MCP
 tool list.
 
 ## Implementation status
 
-The Figma Design portion of this proposal is implemented in connector version 0.2.0. The complete
+The Figma Design portion of this catalog is implemented in connector version 0.2.0. The complete
 registered catalog and input conventions are documented in [TOOLS.md](TOOLS.md).
 
 The implementation intentionally excludes the editor-specific tools in section 11, the
@@ -39,7 +37,7 @@ invocation-driven/product-management APIs in section 12, private/partner-only AP
 network or JavaScript execution. Measurement reads are available in Design; measurement mutations
 return `unsupported_in_editor` because Figma exposes those writes only in Dev Mode.
 
-## Design principles for the expanded surface
+## Tool design principles
 
 Every document-specific tool should keep requiring `connection_id`. In addition:
 
@@ -62,11 +60,11 @@ Every document-specific tool should keep requiring `connection_id`. In addition:
 8. **Annotate MCP tools accurately.** Mark read-only tools with `readOnlyHint`; mark writes with
    `destructiveHint` or `idempotentHint` as appropriate.
 
-## Proposed tool catalog
+## Capability catalog
 
 ### 1. Discovery, capabilities, and document context
 
-| Proposed tool                | Purpose                                                                                                                                                             |
+| Tool                         | Purpose                                                                                                                                                             |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `get_figma_capabilities`     | Return editor type/mode, public API version, manifest permissions and capabilities, supported node types, optional sub-APIs, beta features, and write availability. |
 | `get_figma_document`         | Read bounded document-level fields, page summaries, color profile, thumbnail node, current page, and optional user-safe editor context.                             |
@@ -83,7 +81,7 @@ allow them.
 
 ### 2. Scene-tree discovery and projected node reads
 
-| Proposed tool             | Purpose                                                                                                                                                           |
+| Tool                      | Purpose                                                                                                                                                           |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `get_figma_nodes`         | Fetch one or more nodes by ID with an explicit field set and optional bounded child expansion.                                                                    |
 | `query_figma_nodes`       | Search one loaded page or subtree using serializable criteria: node types, name, visibility, plugin-data key, component/instance identity, and bounded traversal. |
@@ -108,7 +106,7 @@ motion, plugin/dev metadata, annotations, measurements, and editor-specific prop
 
 ### 3. Core node creation, structure, and property mutation
 
-| Proposed tool              | Purpose                                                                                                                                                        |
+| Tool                       | Purpose                                                                                                                                                        |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `create_figma_nodes`       | Create a bounded batch from discriminated DTOs for every node constructor supported by the active editor.                                                      |
 | `update_figma_nodes`       | Apply typed property patches to explicit nodes, including transforms, layout, appearance, export settings, prototype data, and editor-specific properties.     |
@@ -126,7 +124,7 @@ produce `unsupported_in_editor`, not a generic Plugin API exception.
 
 ### 4. Text and font operations
 
-| Proposed tool            | Purpose                                                                                                                                                          |
+| Tool                     | Purpose                                                                                                                                                          |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `list_figma_fonts`       | List available fonts and report missing-font state.                                                                                                              |
 | `update_figma_text`      | Insert/delete/replace text and update whole-node or range typography, lists, hyperlinks, fills, styles, decorations, OpenType, paragraph, and variable bindings. |
@@ -138,7 +136,7 @@ than being left to an MCP caller to sequence correctly.
 
 ### 5. Components, instances, slots, and variants
 
-| Proposed tool                     | Purpose                                                                                                               |
+| Tool                              | Purpose                                                                                                               |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `create_figma_component_instance` | Create an instance or create a component from an existing node.                                                       |
 | `update_figma_component`          | Add/edit/delete component properties, descriptions, documentation links, variant metadata, and publishing visibility. |
@@ -148,7 +146,7 @@ than being left to an MCP caller to sequence correctly.
 
 ### 6. Styles, variables, and libraries
 
-| Proposed tool                      | Purpose                                                                                                                 |
+| Tool                               | Purpose                                                                                                                 |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `list_figma_styles`                | List or fetch local paint, text, effect, and grid styles with pagination.                                               |
 | `create_figma_style`               | Create any public local style type.                                                                                     |
@@ -169,7 +167,7 @@ API can inspect enabled libraries and import known assets; it cannot enable a li
 
 ### 7. Images, media, shaders, brushes, and export
 
-| Proposed tool          | Purpose                                                                                                                      |
+| Tool                   | Purpose                                                                                                                      |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `create_figma_image`   | Create an image from bounded bytes or a fetched URL and return its hash/size.                                                |
 | `get_figma_image`      | Resolve an image hash and expose bytes through a bounded MCP resource.                                                       |
@@ -186,7 +184,7 @@ timeouts, and SSRF policy.
 
 ### 8. Prototyping, viewport, UI feedback, undo, and file state
 
-| Proposed tool                   | Purpose                                                                              |
+| Tool                            | Purpose                                                                              |
 | ------------------------------- | ------------------------------------------------------------------------------------ |
 | `update_figma_prototype`        | Set reactions, flows, overlay behavior, connector endpoints, and Slides transitions. |
 | `get_figma_viewport`            | Read viewport center, zoom, bounds, and editor-specific grid/single view.            |
@@ -204,7 +202,7 @@ place it behind a separate `control_figma_connector_ui` tool with a narrow enum.
 
 ### 9. Plugin data, annotations, measurements, and development metadata
 
-| Proposed tool                      | Purpose                                                                     |
+| Tool                               | Purpose                                                                     |
 | ---------------------------------- | --------------------------------------------------------------------------- |
 | `set_figma_plugin_data`            | Set/delete this plugin's private/shared data and relaunch data.             |
 | `list_figma_annotation_categories` | List/fetch annotation categories.                                           |
@@ -219,7 +217,7 @@ missing public capability from a temporary runtime failure.
 
 ### 10. Motion
 
-| Proposed tool                 | Purpose                                                                             |
+| Tool                          | Purpose                                                                             |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
 | `list_figma_animation_styles` | List available Motion animation styles and normalize spring parameters.             |
 | `get_figma_motion`            | Read node animation styles, animations, manual keyframe tracks, and timelines.      |
@@ -233,7 +231,7 @@ server should advertise the feature as beta.
 These tools should be registered only when at least one connected plugin can support the relevant
 editor, or should fail with a precise capability error.
 
-| Proposed tool              | Editor      | Coverage                                                                |
+| Tool                       | Editor      | Coverage                                                                |
 | -------------------------- | ----------- | ----------------------------------------------------------------------- |
 | `get_figjam_timer`         | FigJam      | Remaining/total/state.                                                  |
 | `control_figjam_timer`     | FigJam      | Start, pause, resume, and stop.                                         |
@@ -293,42 +291,6 @@ Permissions should be opt-in:
 Do not enable `enablePrivatePluginApi`. Public coverage intentionally excludes `fileKey`, partner-only
 Dev Resources behavior, VS Code partner integration, link-preview/auth partner modes, and any other
 private Figma API. The server should report these as `private_api_unavailable`, not claim support.
-
-## Bridge protocol changes
-
-Protocol version 1 supports exactly `get_document_metadata`, has a 1 MiB message ceiling, and no
-application chunking. The proposed surface needs a versioned protocol extension:
-
-- Add a generic request envelope whose `method` is one of the bounded operations above.
-- Define explicit MessagePack DTOs for every input/output; never pass arbitrary property names and
-  values directly to a raw reflection/eval layer.
-- Add response paging and continuation tokens for queries, styles, variables, instances, changes,
-  and library results.
-- Add resource/chunk transfer for exports, images, GIF/video input, SVG, and other large binary data.
-- Keep per-message and per-operation byte/item/depth limits.
-- Add cancellation and progress for expensive exports or traversals.
-- Return typed errors such as `page_not_loaded`, `unsupported_in_editor`, `permission_required`,
-  `font_load_failed`, `mixed_value`, `invalid_node_type`, `readonly_node`,
-  `instance_override_forbidden`, `payload_too_large`, and `private_api_unavailable`.
-
-A raw tool such as `execute_figma_javascript` must not be added. It would bypass schemas, limits,
-write annotations, capability checks, audit logs, and the security boundary.
-
-## Suggested implementation order
-
-1. **Read foundation:** capabilities, pages, page loading, projected node reads, bounded queries,
-   selection, CSS, and exports.
-2. **Core Design writes:** create/update/move/clone/delete, text/font handling, grouping/boolean
-   operations, undo boundaries, and viewport control.
-3. **Design systems:** components/instances/slots, styles, variables, team libraries, annotations,
-   measurements, and plugin data.
-4. **Rich assets and prototypes:** images/media, vectors, shaders/brushes, reactions, flows, and
-   version history.
-5. **Motion beta.**
-6. **Separate editor variants:** FigJam, Slides, Buzz, and Dev Mode/codegen.
-
-The first three phases provide the highest-value Figma Design automation while preserving the
-bounded, explicit-target architecture established by the current specification.
 
 ## Coverage conclusion
 

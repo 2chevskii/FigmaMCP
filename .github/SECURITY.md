@@ -3,8 +3,7 @@
 ## Supported scope
 
 Security reports are relevant to the local companion, loopback WebSocket bridge, MessagePack
-decoder, MCP input validation and Figma Bridge plugin. Hosted authentication and public network
-services are intentionally out of scope because they are not part of this project.
+decoder, MCP input validation, and Figma Bridge plugin.
 
 ## Reporting a vulnerability
 

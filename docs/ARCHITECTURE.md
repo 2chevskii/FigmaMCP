@@ -1,12 +1,11 @@
-# Архитектура
+# Architecture
 
-## Назначение
+## Purpose
 
-Companion предоставляет MCP-доступ только к тем документам Figma, в которых пользователь открыл
-Bridge plugin. Вся система работает на одной пользовательской машине; внешних сервисов и постоянного
-серверного состояния нет.
+The companion provides MCP access to Figma documents where the user has opened the Bridge plugin.
+All runtime state is local to the user's machine and held in memory.
 
-## Компоненты и транспорты
+## Components and transports
 
 ```text
 ┌────────────┐    MCP / STDIO     ┌─────────────────────┐   WebSocket / MessagePack   ┌──────────────┐
@@ -17,60 +16,50 @@ Bridge plugin. Вся система работает на одной польз
                                                                                      Figma Plugin API
 ```
 
-У процесса ровно две транспортные роли:
+The process has two transport roles:
 
-- STDIO обслуживает MCP. `stdout` зарезервирован для протокола MCP, а логи и диагностика пишутся в
+- STDIO serves MCP. `stdout` is reserved for MCP protocol messages, while logs and diagnostics go to
   `stderr`.
-- loopback WebSocket `/bridge` обслуживает неизменённый Bridge plugin. Он принимает только
-  `127.0.0.1:<port>` и `localhost:<port>` в Host, не должен быть доступен из сети и не является
-  публичным API.
+- The loopback WebSocket `/bridge` serves the Bridge plugin. It accepts only `127.0.0.1:<port>` and
+  `localhost:<port>` Host values.
 
-HTTP endpoint `/mcp`, HTTP bearer tokens и URL с `?token=` не входят в целевую архитектуру.
+## Connection lifecycle
 
-## Жизненный цикл подключения
-
-1. MCP-клиент запускает локальный companion и устанавливает STDIO-сессию.
-2. UI плагина открывает `ws://127.0.0.1:3846/bridge` с подпротоколом
-   `figma-mcp-bridge.v2`.
-3. Плагин отправляет `hello` со случайным `connection_id` и контекстом документа.
-4. Companion валидирует сообщение, сохраняет подключение в in-memory registry и отвечает
+1. The MCP client starts the local companion and establishes a STDIO session.
+2. The plugin UI opens `ws://127.0.0.1:3846/bridge` with the `figma-mcp-bridge.v2` subprotocol.
+3. The plugin sends `hello` with a random `connection_id` and document context.
+4. The companion validates the message, stores the connection in the in-memory registry, and returns
    `hello_ack`.
-5. MCP-клиент вызывает `list_figma_connections`, выбирает активный `connection_id`, затем передаёт
-   его во всех document-specific инструментах.
-6. Companion последовательно переводит вызовы в bridge-запросы и сопоставляет ответы по
-   `request_id`.
-7. При отключении соединение удаляется, а ожидающие запросы завершаются контролируемой ошибкой.
+5. The MCP client calls `list_figma_connections`, selects an active `connection_id`, and passes it to
+   every document-specific tool.
+6. The companion serializes calls into bridge requests and matches responses by `request_id`.
+7. On disconnect, the connection is removed and pending requests complete with a controlled error.
 
-`connection_id` идентифицирует запуск плагина, а не постоянный Figma-файл. Новый плагин с тем же
-идентификатором заменяет устаревшее соединение compare-and-swap-операцией; старый сокет не может
-удалить новое подключение.
+A `connection_id` identifies a plugin invocation rather than a persistent Figma file. A connection
+replacement uses compare-and-swap so a stale socket cannot remove the active replacement.
 
-## Bridge-протокол
+## Bridge protocol
 
-Плагин сохраняется без изменений, следовательно сохраняется и текущий wire format:
+The bridge wire format has these properties:
 
-- один MessagePack map в бинарном WebSocket-фрейме;
-- подпротокол `figma-mcp-bridge.v2`;
-- поля envelope: `type`, `protocol_version`, `sent_at`, а при необходимости `connection_id`,
-  `request_id`, `method`, `payload`, `error`;
-- канонические UUID в нижнем регистре и UTC ISO-8601 timestamps;
-- лимит bridge-сообщения 16 MiB; бинарные данные в base64 ограничены 12 MiB;
-- allowlist операций и структурированные payload, без выполнения JavaScript или произвольного
-  property reflection.
+- One MessagePack map per binary WebSocket frame.
+- The `figma-mcp-bridge.v2` subprotocol.
+- Envelope fields: `type`, `protocol_version`, `sent_at`, and, when required, `connection_id`,
+  `request_id`, `method`, `payload`, and `error`.
+- Lowercase canonical UUIDs and UTC ISO-8601 timestamps.
+- A 16 MiB bridge-message limit and a 12 MiB limit for base64 binary data.
+- An operation allowlist and structured payloads, with no JavaScript execution or arbitrary property
+  reflection.
 
-Запросы к одному подключению выполняются последовательно и имеют 30-секундный дедлайн. Мутации могут
-использовать `dry_run` и `idempotency_key`; плагин хранит последние результаты текущего invocation,
-чтобы повтор с тем же ключом не повторял запись.
+Requests for one connection run sequentially and have a 30-second deadline. Mutations can use
+`dry_run` and `idempotency_key`; the plugin retains invocation-local results so a repeated key does
+not repeat the write.
 
-## Границы состояния и безопасности
+## State and security boundaries
 
-Реестр подключений и ожидания запросов живут только в памяти companion. Перезапуск процесса
-отключает плагин и требует его автоматического переподключения; это нормальное и прозрачное
-поведение локального инструмента.
+The connection registry and pending requests live only in companion memory. Restarting the process
+requires the plugin to reconnect.
 
-Не используются PostgreSQL, Redis, command queue, браузерные сессии, личные access tokens, cloud
-ingress или внутренние HTTP API. Отсутствие hosted-сервисов не означает, что bridge можно открыть в
-сеть: boundary — loopback и проверка Host/Origin/protocol на локальном endpoint.
-
-Bridge plugin хранит только адрес loopback companion и не передаёт access token через WebSocket URL
-или bridge envelopes. Локальному решению не требуется отдельная аутентификация.
+The bridge is loopback-only. It validates Host, Origin, and WebSocket subprotocol values before
+accepting a connection. The plugin stores the local companion URL and does not send an access token
+in the WebSocket URL or bridge envelopes.

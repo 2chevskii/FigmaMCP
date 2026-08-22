@@ -1,46 +1,28 @@
-# Локальный Figma MCP
+# Figma MCP Overview
 
-Этот репозиторий развивается как локальный companion для открытых документов Figma. Он не является
-hosted- или multi-tenant-сервисом: пользователь запускает программу на своей машине, а MCP-клиент
-общается с ней через STDIO.
+Figma MCP is a local companion for Figma documents with the Figma Bridge plugin open. An MCP client
+starts the .NET process and exchanges protocol messages with it over STDIO.
 
-## Целевая схема
+## System overview
 
 ```text
-MCP client ── STDIN / STDOUT ──> локальный companion ── loopback WebSocket ──> Figma Bridge plugin
+MCP client ── STDIN / STDOUT ──> local companion ── loopback WebSocket ──> Figma Bridge plugin
                                                                              │
                                                                       Figma Plugin API
 ```
 
-STDIO — единственный транспорт MCP. Локальный companion не публикует `/mcp` и не требует HTTP-
-входа от MCP-клиента.
+The companion has two transport roles:
 
-Companion поднимает **только локальный** endpoint `/bridge`, к которому подключается iframe плагина
-по WebSocket. Это отдельный внутренний канал между двумя процессами на одной машине, а не
-hosted-транспорт для MCP.
+- STDIO serves MCP. Protocol messages use `stdin` and `stdout`; diagnostics use `stderr`.
+- The loopback WebSocket endpoint at `/bridge` serves the Figma Bridge plugin.
 
-## Границы проекта
+The server, plugin, and bridge use explicit typed contracts. Document-specific MCP tools receive a
+live `connection_id`, and bridge operations use bounded payloads, a 30-second deadline, and
+idempotent mutation keys where applicable.
 
-В целевой версии остаются:
+## Starting the companion
 
-- один локальный .NET-процесс;
-- MCP-over-STDIO для выбранного MCP-клиента;
-- текущий MessagePack WebSocket-протокол `figma-mcp-bridge.v2` между companion и плагином;
-- текущие Figma-инструменты, явный `connection_id`, ограничения размера и идемпотентность мутаций.
-
-Из репозитория удалены hosted-компоненты и их инфраструктура: пользовательские и
-административные web-приложения/API, command buffer, Redis/PostgreSQL, Docker Compose, Kubernetes/
-cloud-конфигурация, hosted-аутентификация, access tokens и документация по эксплуатации облака.
-
-Bridge plugin сохраняет текущий протокол и настройку адреса локального companion. Поле access token,
-его client storage и передача через bridge URL удалены: локальному companion не требуется
-аутентификация.
-
-## Как будет запускаться companion
-
-MCP-клиент запускает исполняемый файл как дочерний процесс. MCP-сообщения читаются из `stdin` и
-записываются только в `stdout`; диагностика и логи направляются в `stderr`. Пример будущей
-конфигурации клиента:
+The MCP client starts the executable as a child process. A client configuration can look like this:
 
 ```json
 {
@@ -52,18 +34,12 @@ MCP-клиент запускает исполняемый файл как до�
 }
 ```
 
-В это же время процесс слушает `127.0.0.1:3846/bridge` для Figma-плагина. Адрес и порт остаются
-локальными; нельзя привязывать bridge к `0.0.0.0` или открывать его в сеть.
+The process listens on `127.0.0.1:3846/bridge` for the plugin. The bridge is loopback-only and must
+not bind to an external interface.
 
-## Порядок дальнейшей переделки
+## Documentation map
 
-1. Удалены hosted-проекты, их тесты, контейнеризация, deployment-файлы и зависимости.
-2. Companion снова является единым локальным владельцем реестра подключений и endpoint `/bridge`.
-3. MCP HTTP-транспорт заменён на STDIO; HTTP endpoint `/mcp` отсутствует.
-4. Из Bridge plugin удалена поддержка access token без изменения MessagePack-протокола.
-5. Собрать и проверить локальный сценарий: MCP-клиент запускает companion, плагин подключается к
-   loopback bridge, затем вызовы инструментов проходят по существующему протоколу.
-
-Подробности целевого взаимодействия зафиксированы в [архитектуре](ARCHITECTURE.md), а команды
-разработки — в [руководстве для разработки](DEVELOPMENT.md). Полный набор Figma-инструментов описан
-в [справочнике](TOOLS.md).
+- [Architecture](ARCHITECTURE.md) explains transports, lifecycle, state, and security boundaries.
+- [Development](DEVELOPMENT.md) describes the repository layout, build commands, and local checks.
+- [Tool reference](TOOLS.md) defines the MCP tool contract.
+- [Plugin API coverage](PLUGIN_API_TOOL_COVERAGE.md) records supported and deferred Figma API areas.

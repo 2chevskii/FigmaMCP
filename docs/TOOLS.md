@@ -30,7 +30,7 @@ permission-gated APIs can vary by Figma runtime, account, and file.
 | Tool                          | Input object                                                                            |
 | ----------------------------- | --------------------------------------------------------------------------------------- |
 | `list_figma_connections`      | None                                                                                    |
-| `get_figma_document_metadata` | None beyond `connection_id`; retained as a compatibility alias for `get_figma_document` |
+| `get_figma_document_metadata` | None beyond `connection_id`; an alias for `get_figma_document`                 |
 | `get_figma_capabilities`      | None                                                                                    |
 | `get_figma_document`          | None                                                                                    |
 | `list_figma_pages`            | Optional `cursor`, `limit`                                                              |

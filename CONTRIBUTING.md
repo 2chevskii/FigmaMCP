@@ -1,43 +1,41 @@
-# Вклад в Figma MCP
+# Contributing to Figma MCP
 
-## Перед началом работы
+## Before you start
 
-- Ознакомьтесь с [README.md](README.md) и [нормативной спецификацией](.agents/SPEC.md).
-- Для изменений transport, bridge или MCP tools сначала прочитайте документы в порядке, указанном в
+- Read the [README](README.md) and the [normative specification](.agents/SPEC.md).
+- For transport, bridge, or MCP tool changes, read the documents in the order listed in
   [AGENTS.md](AGENTS.md).
-- Не возвращайте hosted-компоненты, публичные HTTP MCP-endpoint, токены, базы данных, Docker или
-  cloud-конфигурацию.
 
-## Границы изменений
+## Change boundaries
 
-- MCP-протокол использует только STDIO: никакого текста или логов в `stdout`.
-- Bridge слушает только `127.0.0.1:3846/bridge` и использует `figma-mcp-bridge.v2`.
-- Все document-specific MCP calls требуют активный `connection_id`.
-- Изменения plugin должны сохранять typed MessagePack protocol, лимиты payload и Figma Plugin API
-  ограничения.
+- MCP uses STDIO only: do not write text or logs to `stdout`.
+- The bridge listens at `127.0.0.1:3846/bridge` and uses `figma-mcp-bridge.v2`.
+- Every document-specific MCP call requires an active `connection_id`.
+- Plugin changes preserve the typed MessagePack protocol, payload limits, and Figma Plugin API
+  constraints.
 
-## Проверка перед pull request
+## Validate before opening a pull request
 
 ```powershell
-Push-Location .\server
+Push-Location .\packages\server
 dotnet format FigmaMcp.slnx --verify-no-changes --no-restore
 dotnet build FigmaMcp.slnx --configuration Release
 dotnet test --solution FigmaMcp.slnx --configuration Release
 Pop-Location
 
-npm ci --prefix .\plugin
-npm run format:check --prefix .\plugin
-npm run lint --prefix .\plugin
-npm run typecheck --prefix .\plugin
-npm test --prefix .\plugin
-npm run build --prefix .\plugin
+npm ci --prefix .\packages\plugin
+npm run format:check --prefix .\packages\plugin
+npm run lint --prefix .\packages\plugin
+npm run typecheck --prefix .\packages\plugin
+npm test --prefix .\packages\plugin
+npm run build --prefix .\packages\plugin
 ```
 
-Также выполните `git diff --check`. Если менялся plugin, transport или tool contract, проверьте
-сценарий в Figma Desktop; синтетические тесты bridge не заменяют этот запуск.
+Also run `git diff --check`. If the plugin, transport, or tool contract changed, validate the
+scenario in Figma Desktop; synthetic bridge tests do not replace that check.
 
 ## Pull request
 
-Опишите пользовательскую цель, архитектурный эффект и выполненные проверки. Не включайте
-сгенерированные `bin/`, `obj/`, `plugin/dist/`, `plugin/node_modules/`, персональные настройки IDE
-или секреты.
+Describe the user goal, architectural effect, and completed validation. Do not include generated
+`bin/`, `obj/`, `packages/plugin/dist/`, `packages/plugin/node_modules/`, personal IDE settings, or
+secrets.
