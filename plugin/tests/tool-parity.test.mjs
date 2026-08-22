@@ -26,7 +26,12 @@ test("every registered document tool has a plugin handler", async () => {
     if (name === "list_figma_connections") {
       continue;
     }
-    const bridgeName = name === "get_figma_document_metadata" ? "get_document_metadata" : name;
+    const bridgeName =
+      name === "get_figma_document_metadata"
+        ? "get_document_metadata"
+        : name === "get_figma_screenshot"
+          ? "export_figma_nodes"
+          : name;
     assert.match(
       handlers,
       new RegExp(`\\b${bridgeName}\\s*:`),

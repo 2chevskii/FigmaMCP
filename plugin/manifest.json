@@ -10,7 +10,7 @@
   "editorType": ["figma"],
   "ui": "ui.html",
   "networkAccess": {
-    "allowedDomains": ["*"],
-    "reasoning": "Connects to a user-configured local companion server port used to expose the currently open Figma document through MCP."
+    "allowedDomains": ["ws://127.0.0.1:3846", "ws://localhost:3846"],
+    "reasoning": "Connects the plugin UI to the local Figma MCP companion over the loopback WebSocket bridge."
   }
 }

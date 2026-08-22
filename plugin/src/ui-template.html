@@ -135,7 +135,7 @@
         color: var(--figma-color-icon-brand, #0d99ff);
       }
 
-      .status[data-state="invalid_port"] .status-icon,
+      .status[data-state="invalid_server_url"] .status-icon,
       .status[data-state="protocol_error"] .status-icon {
         background: var(--figma-color-bg-danger-tertiary, #ffe2e0);
         color: var(--figma-color-icon-danger, #f24822);
@@ -171,7 +171,7 @@
 
       .field {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 92px;
+        grid-template-columns: minmax(0, 1fr) 150px;
         gap: 12px;
         align-items: center;
       }
@@ -198,7 +198,7 @@
         border-radius: 5px;
         background: var(--figma-color-bg, #ffffff);
         color: var(--figma-color-text, #1e1e1e);
-        text-align: right;
+        text-align: left;
       }
 
       input:hover {
@@ -311,18 +311,18 @@
 
         <div class="settings">
           <div class="section-label">Connection</div>
-          <label class="field" for="port">
+          <label class="field" for="server-url">
             <span class="field-copy">
-              <span class="field-label">Server port</span>
-              <span class="field-help">Local companion endpoint</span>
+              <span class="field-label">Local companion URL</span>
+              <span class="field-help">HTTP loopback address only</span>
             </span>
             <input
-              id="port"
-              inputmode="numeric"
+              id="server-url"
+              inputmode="url"
               autocomplete="off"
               spellcheck="false"
               aria-describedby="error"
-              value="3846"
+              value="http://127.0.0.1:3846"
             />
           </label>
           <div id="error" role="alert" aria-live="assertive"></div>

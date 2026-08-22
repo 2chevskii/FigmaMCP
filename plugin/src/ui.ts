@@ -1,6 +1,12 @@
 import { Envelope, now, pack, PROTOCOL_VERSION, unpack } from "./bridge/protocol";
 import { createConnectionId } from "./bridge/uuid";
-import { BRIDGE_SUBPROTOCOL, DEFAULT_PORT, isPort, PLUGIN_VERSION } from "./config";
+import {
+  BRIDGE_SUBPROTOCOL,
+  bridgeUrl,
+  DEFAULT_SERVER_URL,
+  isServerUrl,
+  PLUGIN_VERSION,
+} from "./config";
 import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from "./messages";
 
 type ConnectionState =
@@ -8,7 +14,7 @@ type ConnectionState =
   | "connecting"
   | "connected"
   | "reconnecting"
-  | "invalid_port"
+  | "invalid_server_url"
   | "protocol_error";
 
 const STATE_LABELS: Record<ConnectionState, string> = {
@@ -16,13 +22,13 @@ const STATE_LABELS: Record<ConnectionState, string> = {
   connecting: "Connecting…",
   connected: "Connected",
   reconnecting: "Reconnecting…",
-  invalid_port: "Check server port",
+  invalid_server_url: "Check server URL",
   protocol_error: "Connection error",
 };
 
 const RECONNECT_DELAYS_MS = [500, 1000, 2000, 5000, 10000];
 
-const portInput = requiredElement<HTMLInputElement>("#port");
+const serverUrlInput = requiredElement<HTMLInputElement>("#server-url");
 const statusElement = requiredElement<HTMLDivElement>("#status");
 const stateElement = requiredElement<HTMLDivElement>("#state");
 const detailsElement = requiredElement<HTMLDivElement>("#details");
@@ -31,7 +37,7 @@ const saveButton = requiredElement<HTMLButtonElement>("#save");
 const closeButton = requiredElement<HTMLButtonElement>("#close");
 
 const connectionId = createConnectionId();
-let configuredPort = DEFAULT_PORT;
+let configuredServerUrl = DEFAULT_SERVER_URL;
 let context: ConnectionContext = {
   plugin_version: PLUGIN_VERSION,
   editor_type: "figma",
@@ -45,28 +51,23 @@ let reconnectTimer: number | undefined;
 let stopped = false;
 
 window.onmessage = handleControllerMessage;
-saveButton.addEventListener("click", savePort);
+saveButton.addEventListener("click", saveConnectionSettings);
 closeButton.addEventListener("click", closePlugin);
-portInput.addEventListener("input", clearPortError);
-portInput.addEventListener("keydown", (event) => {
+serverUrlInput.addEventListener("input", clearServerUrlError);
+serverUrlInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
-    savePort();
+    saveConnectionSettings();
   }
 });
-
 function connect(): void {
   if (stopped) {
     return;
   }
 
   clearReconnectTimer();
-  setState(
-    reconnectAttempt > 0 ? "reconnecting" : "connecting",
-    "",
-    `ws://127.0.0.1:${configuredPort}/bridge`,
-  );
+  setState(reconnectAttempt > 0 ? "reconnecting" : "connecting", "", configuredServerUrl);
 
-  const nextSocket = new WebSocket(`ws://127.0.0.1:${configuredPort}/bridge`, BRIDGE_SUBPROTOCOL);
+  const nextSocket = new WebSocket(bridgeUrl(configuredServerUrl), BRIDGE_SUBPROTOCOL);
   nextSocket.binaryType = "arraybuffer";
   socket = nextSocket;
 
@@ -103,7 +104,7 @@ function connect(): void {
       setState(
         "reconnecting",
         "Unable to reach the companion server. Retrying automatically.",
-        `ws://127.0.0.1:${configuredPort}/bridge`,
+        configuredServerUrl,
       );
     }
   };
@@ -120,7 +121,7 @@ function receive(envelope: Envelope, bytes: Uint8Array): void {
   switch (envelope.type) {
     case "hello_ack":
       reconnectAttempt = 0;
-      setState("connected", "", `Local server · Port ${configuredPort}`);
+      setState("connected", "", configuredServerUrl);
       break;
     case "request":
       postToController({ type: "bridge_frame", bytes });
@@ -149,9 +150,9 @@ function handleControllerMessage(
 
   switch (message.type) {
     case "config_loaded":
-      configuredPort = message.port;
+      configuredServerUrl = message.serverUrl;
       context = message.context;
-      portInput.value = String(configuredPort);
+      serverUrlInput.value = configuredServerUrl;
       connect();
       break;
     case "bridge_frame":
@@ -172,17 +173,20 @@ function handleControllerMessage(
   }
 }
 
-function savePort(): void {
-  if (!isPort(portInput.value)) {
-    setState("invalid_port", "Enter a decimal port from 1 through 65535.");
-    portInput.setAttribute("aria-invalid", "true");
-    portInput.focus();
+function saveConnectionSettings(): void {
+  if (!isServerUrl(serverUrlInput.value)) {
+    setState("invalid_server_url", "Enter an HTTP loopback URL, such as http://127.0.0.1:3846.");
+    serverUrlInput.setAttribute("aria-invalid", "true");
+    serverUrlInput.focus();
     return;
   }
 
-  portInput.removeAttribute("aria-invalid");
-  configuredPort = Number(portInput.value);
-  postToController({ type: "set_port", port: configuredPort });
+  serverUrlInput.removeAttribute("aria-invalid");
+  configuredServerUrl = serverUrlInput.value.trim().replace(/\/$/, "");
+  postToController({
+    type: "set_connection_settings",
+    serverUrl: configuredServerUrl,
+  });
   restartConnection();
 }
 
@@ -254,12 +258,12 @@ function setState(value: ConnectionState, message = "", details?: string): void 
 function defaultStateDetails(value: ConnectionState): string {
   switch (value) {
     case "connected":
-      return `Local server · Port ${configuredPort}`;
+      return configuredServerUrl;
     case "connecting":
       return "Opening a local connection";
     case "reconnecting":
       return `Retry attempt ${reconnectAttempt + 1}`;
-    case "invalid_port":
+    case "invalid_server_url":
       return "Update the connection setting below";
     case "protocol_error":
       return "The server returned an unexpected response";
@@ -268,10 +272,10 @@ function defaultStateDetails(value: ConnectionState): string {
   }
 }
 
-function clearPortError(): void {
-  portInput.removeAttribute("aria-invalid");
+function clearServerUrlError(): void {
+  serverUrlInput.removeAttribute("aria-invalid");
 
-  if (statusElement.dataset.state === "invalid_port") {
+  if (statusElement.dataset.state === "invalid_server_url") {
     setState(socket?.readyState === WebSocket.OPEN ? "connected" : "reconnecting");
   }
 }

@@ -1,5 +1,5 @@
 import { Envelope, now, pack, PROTOCOL_VERSION, unpack } from "./bridge/protocol";
-import { DEFAULT_PORT, PLUGIN_VERSION, PORT_STORAGE_KEY } from "./config";
+import { DEFAULT_SERVER_URL, isServerUrl, PLUGIN_VERSION, SERVER_URL_STORAGE_KEY } from "./config";
 import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from "./messages";
 import { assetEditorHandlers } from "./operations/assets-editor";
 import { metadataMotionHandlers } from "./operations/metadata-motion";
@@ -9,7 +9,7 @@ import { OperationError, RpcHandler, RpcPayload } from "./operations/shared";
 import { styleVariableHandlers } from "./operations/styles-variables";
 import { textComponentHandlers } from "./operations/text-components";
 
-figma.showUI(__html__, { width: 360, height: 300, themeColors: true });
+figma.showUI(__html__, { width: 360, height: 360, themeColors: true });
 
 const changeJournalReady = startChangeJournal();
 void initialize();
@@ -27,18 +27,21 @@ async function initialize(): Promise<void> {
 }
 
 async function loadConfig(): Promise<void> {
-  const storedPort: unknown = await figma.clientStorage.getAsync(PORT_STORAGE_KEY);
+  const storedServerUrl: unknown = await figma.clientStorage.getAsync(SERVER_URL_STORAGE_KEY);
   postToUi({
     type: "config_loaded",
-    port: typeof storedPort === "number" ? storedPort : DEFAULT_PORT,
+    serverUrl:
+      typeof storedServerUrl === "string" && isServerUrl(storedServerUrl)
+        ? storedServerUrl
+        : DEFAULT_SERVER_URL,
     context: readConnectionContext(),
   });
 }
 
 function handleUiMessage(message: UiToControllerMessage): void {
   switch (message.type) {
-    case "set_port":
-      void figma.clientStorage.setAsync(PORT_STORAGE_KEY, message.port);
+    case "set_connection_settings":
+      void figma.clientStorage.setAsync(SERVER_URL_STORAGE_KEY, message.serverUrl);
       break;
     case "close_plugin":
       figma.closePlugin();

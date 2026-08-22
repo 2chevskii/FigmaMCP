@@ -1,31 +1,49 @@
-# Development
+# Разработка
 
-## Repository layout
+## Целевой состав репозитория
+
+После переделки в репозитории остаются только исходники локального companion, Figma Bridge plugin,
+тесты этих двух компонентов и документация:
 
 ```text
 .
 ├── docs/
-├── plugin/
-│   ├── scripts/
+├── plugin/                         # пока не меняется
 │   ├── src/
 │   ├── tests/
-│   └── dist/              # generated
+│   └── dist/                       # generated, не коммитится
 └── server/
-    ├── src/
-    │   └── FigmaMcp.Server/
-    ├── tests/
-    │   └── FigmaMcp.Server.Tests/
+    ├── src/FigmaMcp.Server/        # local STDIO MCP + loopback /bridge
+    ├── tests/FigmaMcp.Server.Tests/
     └── FigmaMcp.slnx
 ```
 
-All server source and test projects live under `server/`. Plugin build artifacts live under
-`plugin/dist/` and are not committed.
+`web/`, `deploy/`, Compose-файлы, отдельные hosted API, command buffer, инфраструктурные проекты и
+их тесты удалены. Они не входят в целевую структуру и не должны возвращаться в репозиторий.
 
-## Plugin workflow
+## Companion
 
-Run from `plugin/`:
+Проект использует .NET 10 и central package management. Команды после очистки solution:
 
 ```powershell
+cd server
+dotnet restore FigmaMcp.slnx
+dotnet format FigmaMcp.slnx --verify-no-changes --no-restore
+dotnet build FigmaMcp.slnx --configuration Release
+dotnet test --solution FigmaMcp.slnx --configuration Release
+```
+
+Во время разработки STDIO-сервер запускают через MCP-клиент или с локальным STDIO harness. Не
+печатайте диагностические данные в `stdout`: этот поток принадлежит MCP-протоколу. Локальный bridge
+слушает только `127.0.0.1:3846` и нужен для подключения плагина.
+
+## Bridge plugin
+
+Bridge plugin сохраняет свой MessagePack-протокол и настройку адреса local companion; поддержка
+access token удалена. Рабочий цикл плагина остаётся прежним:
+
+```powershell
+cd plugin
 npm install
 npm run format:check
 npm run lint
@@ -34,38 +52,22 @@ npm test
 npm run build
 ```
 
-Use `npm run format` to apply Prettier to plugin sources and project documentation. Use
-`npm run watch` during plugin development; it rebuilds both bundles and regenerates `dist/ui.html`
-when UI sources change.
+Импортируйте `plugin/dist/manifest.json` как development plugin в Figma Desktop. В настройке сервера
+оставьте локальный адрес companion (по умолчанию `http://127.0.0.1:3846`); плагин самостоятельно
+формирует WebSocket-адрес `/bridge`.
 
-The controller bundle injects a small UTF-8 encoding fallback before MessagePack loads because the
-Figma sandbox does not expose `TextEncoder` or `TextDecoder`. The UI UUID helper uses
-`crypto.randomUUID` when available and falls back to UUID v4 generation for older Figma runtimes.
+Плагин хранит только URL loopback companion (по умолчанию `http://127.0.0.1:3846`) и формирует
+WebSocket-адрес `/bridge` без query-параметров.
 
-## Server workflow
+## Проверка локального сценария
 
-Run from `server/`:
+После реализации проверка должна покрыть следующую цепочку:
 
-```powershell
-dotnet format FigmaMcp.slnx --verify-no-changes --no-restore
-dotnet build FigmaMcp.slnx --configuration Release
-dotnet run --project tests/FigmaMcp.Server.Tests --configuration Release -- --no-progress
-```
+1. MCP-клиент запускает companion как STDIO-процесс.
+2. Плагин подключается к `ws://127.0.0.1:3846/bridge` и получает `hello_ack`.
+3. `list_figma_connections` возвращает подключение плагина.
+4. Инструмент с выбранным `connection_id` получает ответ от Figma через существующий bridge.
+5. После закрытия плагина ожидающий запрос завершается ошибкой, а подключение пропадает из списка.
 
-The solution uses the .NET 10 Microsoft.Testing.Platform runner selected in `server/global.json`.
-Dependencies use central package management in `server/Directory.Packages.props`.
-
-## Publish
-
-Create a self-contained Windows x64 executable from `server/`:
-
-```powershell
-dotnet publish src/FigmaMcp.Server -p:PublishProfile=win-x64
-```
-
-## Formatting rules
-
-The root `.editorconfig` defines whitespace and line-ending rules across the repository. Prettier
-formats TypeScript, JavaScript, JSON, HTML, and Markdown. `dotnet format` formats C#.
-
-Run both formatting checks before committing changes that cross the plugin/server boundary.
+Не нужны Docker, Compose, PostgreSQL, Redis, облачные переменные окружения, токены, регистрация
+пользователя или браузерные приложения.

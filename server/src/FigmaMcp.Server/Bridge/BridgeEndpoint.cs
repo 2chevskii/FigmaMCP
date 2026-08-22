@@ -11,7 +11,8 @@ public static class BridgeEndpoint
         HttpContext context,
         PluginConnectionRegistry registry,
         ILoggerFactory loggerFactory,
-        IHostApplicationLifetime lifetime)
+        IHostApplicationLifetime lifetime
+    )
     {
         if (!IsValidRequest(context))
         {
@@ -23,7 +24,8 @@ public static class BridgeEndpoint
         using var socket = await AcceptSocketAsync(context);
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
             context.RequestAborted,
-            lifetime.ApplicationStopping);
+            lifetime.ApplicationStopping
+        );
 
         cancellation.CancelAfter(BridgeProtocol.HelloTimeout);
         PluginConnection? connection = null;
@@ -46,7 +48,8 @@ public static class BridgeEndpoint
                         envelope,
                         socket,
                         registry,
-                        cancellation.Token);
+                        cancellation.Token
+                    );
                     cancellation.CancelAfter(Timeout.InfiniteTimeSpan);
                     continue;
                 }
@@ -54,7 +57,8 @@ public static class BridgeEndpoint
                 ProcessMessage(envelope, connection, logger);
             }
         }
-        catch (OperationCanceledException) when (!lifetime.ApplicationStopping.IsCancellationRequested)
+        catch (OperationCanceledException)
+            when (!lifetime.ApplicationStopping.IsCancellationRequested)
         {
             logger.LogWarning("Bridge hello timed out");
         }
@@ -84,7 +88,8 @@ public static class BridgeEndpoint
             && IsValidOrigin(context.Request.Headers.Origin)
             && context.WebSockets.WebSocketRequestedProtocols.Contains(
                 BridgeProtocol.Subprotocol,
-                StringComparer.Ordinal);
+                StringComparer.Ordinal
+            );
     }
 
     private static Task<WebSocket> AcceptSocketAsync(HttpContext context)
@@ -95,18 +100,18 @@ public static class BridgeEndpoint
                 SubProtocol = BridgeProtocol.Subprotocol,
                 DangerousEnableCompression = true,
                 DisableServerContextTakeover = true,
-            });
+            }
+        );
     }
 
     private static async Task<PluginConnection> CompleteHandshakeAsync(
         BridgeEnvelope envelope,
         WebSocket socket,
         PluginConnectionRegistry registry,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        if (envelope.Type != "hello"
-            || envelope.ConnectionId is null
-            || envelope.Payload is null)
+        if (envelope.Type != "hello" || envelope.ConnectionId is null || envelope.Payload is null)
         {
             throw new BridgeProtocolException("The first bridge message must be hello.");
         }
@@ -123,7 +128,8 @@ public static class BridgeEndpoint
             hello.EditorType,
             hello.Mode,
             now,
-            now);
+            now
+        );
         var connection = new PluginConnection(summary, socket);
 
         await registry.RegisterAsync(connection);
@@ -136,8 +142,10 @@ public static class BridgeEndpoint
                 null,
                 CreateHelloAcknowledgement(),
                 null,
-                DateTimeOffset.UtcNow),
-            cancellationToken);
+                DateTimeOffset.UtcNow
+            ),
+            cancellationToken
+        );
 
         return connection;
     }
@@ -145,12 +153,14 @@ public static class BridgeEndpoint
     private static void ProcessMessage(
         BridgeEnvelope envelope,
         PluginConnection connection,
-        ILogger logger)
+        ILogger logger
+    )
     {
         if (envelope.ConnectionId != connection.Id)
         {
             throw new BridgeProtocolException(
-                "connection_id does not match the handshaken connection.");
+                "connection_id does not match the handshaken connection."
+            );
         }
 
         connection.Touch();
@@ -164,7 +174,8 @@ public static class BridgeEndpoint
                     context.CurrentPage.Id,
                     context.CurrentPage.Name,
                     context.EditorType,
-                    context.Mode);
+                    context.Mode
+                );
                 break;
             case { Type: "response", RequestId: { } requestId, Payload: { } payload }:
                 if (!connection.Complete(requestId, payload))
@@ -189,7 +200,8 @@ public static class BridgeEndpoint
 
     private static async Task<BridgeEnvelope?> ReceiveAsync(
         WebSocket socket,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         using var stream = new MemoryStream();
         var buffer = new byte[16 * 1024];
@@ -215,8 +227,7 @@ public static class BridgeEndpoint
             }
 
             await stream.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken);
-        }
-        while (!result.EndOfMessage);
+        } while (!result.EndOfMessage);
 
         return BridgeEnvelopeCodec.Decode(stream.ToArray());
     }
@@ -230,7 +241,8 @@ public static class BridgeEndpoint
             payload.Mode,
             payload.DocumentName,
             payload.CurrentPage,
-            "hello");
+            "hello"
+        );
         return payload;
     }
 
@@ -243,7 +255,8 @@ public static class BridgeEndpoint
             payload.Mode,
             payload.DocumentName,
             payload.CurrentPage,
-            "context_changed");
+            "context_changed"
+        );
         return payload;
     }
 
@@ -260,9 +273,11 @@ public static class BridgeEndpoint
         string? mode,
         string? documentName,
         PagePayload? currentPage,
-        string messageType)
+        string messageType
+    )
     {
-        var invalid = string.IsNullOrWhiteSpace(editorType)
+        var invalid =
+            string.IsNullOrWhiteSpace(editorType)
             || string.IsNullOrWhiteSpace(mode)
             || documentName is null
             || currentPage is null
@@ -285,7 +300,8 @@ public static class BridgeEndpoint
                 ["request_timeout_ms"] = (int)BridgeProtocol.RequestTimeout.TotalMilliseconds,
                 ["max_message_bytes"] = BridgeProtocol.MaxMessageBytes,
             },
-            BridgeProtocol.SerializerOptions);
+            BridgeProtocol.SerializerOptions
+        );
     }
 
     private static void ValidateProtocolVersion(BridgeEnvelope envelope)
@@ -309,7 +325,8 @@ public static class BridgeEndpoint
             await socket.CloseAsync(
                 WebSocketCloseStatus.PolicyViolation,
                 "bridge_closed",
-                CancellationToken.None);
+                CancellationToken.None
+            );
         }
     }
 }

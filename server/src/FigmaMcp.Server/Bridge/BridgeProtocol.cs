@@ -3,7 +3,7 @@ using MessagePack;
 
 namespace FigmaMcp.Server.Bridge;
 
-internal static class BridgeProtocol
+public static class BridgeProtocol
 {
     public const int Version = 2;
     public const int MaxMessageBytes = 16 * 1024 * 1024;
@@ -21,17 +21,19 @@ internal static class BridgeProtocol
     };
 }
 
-internal sealed record PagePayload(string Id, string Name);
+public sealed record PagePayload(string Id, string Name);
 
-internal sealed record HelloPayload(
+public sealed record HelloPayload(
     string PluginVersion,
     string EditorType,
     string Mode,
     string DocumentName,
-    PagePayload CurrentPage);
+    PagePayload CurrentPage
+);
 
-internal sealed record ContextPayload(
+public sealed record ContextPayload(
     string EditorType,
     string Mode,
     string DocumentName,
-    PagePayload CurrentPage);
+    PagePayload CurrentPage
+);

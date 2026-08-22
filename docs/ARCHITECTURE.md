@@ -1,73 +1,76 @@
-# Architecture
+# Архитектура
 
-## Components
+## Назначение
+
+Companion предоставляет MCP-доступ только к тем документам Figma, в которых пользователь открыл
+Bridge plugin. Вся система работает на одной пользовательской машине; внешних сервисов и постоянного
+серверного состояния нет.
+
+## Компоненты и транспорты
 
 ```text
-MCP client ── Streamable HTTP ──> .NET companion ── WebSocket ──> Figma plugin UI
-                                        │                            │
-                                        │                            └─ browser networking
-                                        └─ live connection registry
-                                                                     │
-                                                        Figma plugin controller
-                                                                     │
-                                                               Figma Plugin API
+┌────────────┐    MCP / STDIO     ┌─────────────────────┐   WebSocket / MessagePack   ┌──────────────┐
+│ MCP client │ <────────────────> │ Local MCP companion │ <────────────────────────> │ Figma plugin │
+└────────────┘  stdin / stdout    └─────────────────────┘  127.0.0.1:3846/bridge      └──────────────┘
+                                          │                                                   │
+                                          └── in-memory live connection registry ──────────────┘
+                                                                                     Figma Plugin API
 ```
 
-The companion is a persistent, stateless MCP HTTP server. Figma plugin instances maintain WebSocket
-connections to it. Document-specific calls always name one live connection explicitly.
+У процесса ровно две транспортные роли:
 
-The plugin has two execution environments:
+- STDIO обслуживает MCP. `stdout` зарезервирован для протокола MCP, а логи и диагностика пишутся в
+  `stderr`.
+- loopback WebSocket `/bridge` обслуживает неизменённый Bridge plugin. Он принимает только
+  `127.0.0.1:<port>` и `localhost:<port>` в Host, не должен быть доступен из сети и не является
+  публичным API.
 
-- `plugin/src/main.ts` runs in Figma's plugin sandbox and reads the document through the Plugin API.
-- `plugin/src/ui.ts` runs in a browser iframe and owns the WebSocket because the sandbox does not
-  provide browser networking.
+HTTP endpoint `/mcp`, HTTP bearer tokens и URL с `?token=` не входят в целевую архитектуру.
 
-The controller and UI exchange typed messages through Figma's `postMessage` bridge.
+## Жизненный цикл подключения
 
-## Connection lifecycle
+1. MCP-клиент запускает локальный companion и устанавливает STDIO-сессию.
+2. UI плагина открывает `ws://127.0.0.1:3846/bridge` с подпротоколом
+   `figma-mcp-bridge.v2`.
+3. Плагин отправляет `hello` со случайным `connection_id` и контекстом документа.
+4. Companion валидирует сообщение, сохраняет подключение в in-memory registry и отвечает
+   `hello_ack`.
+5. MCP-клиент вызывает `list_figma_connections`, выбирает активный `connection_id`, затем передаёт
+   его во всех document-specific инструментах.
+6. Companion последовательно переводит вызовы в bridge-запросы и сопоставляет ответы по
+   `request_id`.
+7. При отключении соединение удаляется, а ожидающие запросы завершаются контролируемой ошибкой.
 
-1. The plugin UI creates one invocation UUID.
-2. It opens `/bridge` with subprotocol `figma-mcp-bridge.v2`.
-3. It sends `hello` within five seconds.
-4. The server validates the payload and installs the connection in the registry.
-5. The server replies with `hello_ack`.
-6. MCP tool calls become correlated bridge requests and responses.
-7. Context changes update the cached connection summary.
-8. Disconnects fail pending requests and remove only the matching socket.
+`connection_id` идентифицирует запуск плагина, а не постоянный Figma-файл. Новый плагин с тем же
+идентификатором заменяет устаревшее соединение compare-and-swap-операцией; старый сокет не может
+удалить новое подключение.
 
-Installing a replacement connection and removing a stale connection use compare-and-swap semantics.
-A stale socket therefore cannot remove a newer socket with the same connection ID.
+## Bridge-протокол
 
-## Wire format
+Плагин сохраняется без изменений, следовательно сохраняется и текущий wire format:
 
-Each WebSocket message contains one MessagePack map in a binary frame. The shared envelope includes:
+- один MessagePack map в бинарном WebSocket-фрейме;
+- подпротокол `figma-mcp-bridge.v2`;
+- поля envelope: `type`, `protocol_version`, `sent_at`, а при необходимости `connection_id`,
+  `request_id`, `method`, `payload`, `error`;
+- канонические UUID в нижнем регистре и UTC ISO-8601 timestamps;
+- лимит bridge-сообщения 16 MiB; бинарные данные в base64 ограничены 12 MiB;
+- allowlist операций и структурированные payload, без выполнения JavaScript или произвольного
+  property reflection.
 
-- `type`
-- `protocol_version`
-- `sent_at`
-- optional `connection_id`, `request_id`, `method`, `payload`, and `error`
+Запросы к одному подключению выполняются последовательно и имеют 30-секундный дедлайн. Мутации могут
+использовать `dry_run` и `idempotency_key`; плагин хранит последние результаты текущего invocation,
+чтобы повтор с тем же ключом не повторял запись.
 
-Messages are limited to 16 MiB. UUIDs use lowercase canonical form and timestamps use UTC ISO-8601.
-Payload property names use snake_case. Requests carry one allowlisted operation name and an explicit
-structured payload; the plugin does not expose JavaScript evaluation or arbitrary property
-reflection.
+## Границы состояния и безопасности
 
-The server serializes operations per live connection. Each request has a 30-second deadline. Mutation
-payloads can carry `dry_run` and `idempotency_key`; the plugin retains the 200 most recent results per
-invocation so a retry can return the original result without replaying the write.
+Реестр подключений и ожидания запросов живут только в памяти companion. Перезапуск процесса
+отключает плагин и требует его автоматического переподключения; это нормальное и прозрачное
+поведение локального инструмента.
 
-Binary image, video, and export data is base64 encoded within the structured response and capped at
-12 MiB, leaving envelope overhead below the transport ceiling.
+Не используются PostgreSQL, Redis, command queue, браузерные сессии, личные access tokens, cloud
+ingress или внутренние HTTP API. Отсутствие hosted-сервисов не означает, что bridge можно открыть в
+сеть: boundary — loopback и проверка Host/Origin/protocol на локальном endpoint.
 
-## Local security boundary
-
-The companion:
-
-- binds only to `127.0.0.1`;
-- accepts only `127.0.0.1:<port>` and `localhost:<port>` Host headers;
-- rejects browser Origin headers at `/mcp`;
-- accepts only a missing or `null` bridge Origin;
-- requires the versioned bridge subprotocol.
-
-These checks harden a local-only integration. The current milestone does not provide authentication or
-TLS and must not be exposed to a network interface.
+Bridge plugin хранит только адрес loopback companion и не передаёт access token через WebSocket URL
+или bridge envelopes. Локальному решению не требуется отдельная аутентификация.
