@@ -1,4 +1,10 @@
 <Solution>
+  <Folder Name="/misc/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="NuGet.config" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/FigmaMcp.Server/FigmaMcp.Server.csproj" />
   </Folder>
