@@ -24,8 +24,8 @@ builder.WebHost.UseUrls($"http://127.0.0.1:{options.Port}");
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(console => console.LogToStandardErrorThreshold = LogLevel.Trace);
 builder.Services.AddSingleton<PluginConnectionRegistry>();
-builder.Services
-    .AddMcpServer(server =>
+builder
+    .Services.AddMcpServer(server =>
     {
         server.ServerInfo = new() { Name = ProductName, Version = ProductVersion };
         server.ServerInstructions =
@@ -39,17 +39,19 @@ builder.Services
 
 var app = builder.Build();
 app.UseWebSockets();
-app.Use(async (context, next) =>
-{
-    var invalidHost = !validHosts.Contains(context.Request.Host.Value ?? string.Empty);
-    if (invalidHost)
+app.Use(
+    async (context, next) =>
     {
-        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-        return;
-    }
+        var invalidHost = !validHosts.Contains(context.Request.Host.Value ?? string.Empty);
+        if (invalidHost)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
 
-    await next(context);
-});
+        await next(context);
+    }
+);
 
 app.Map("/bridge", BridgeEndpoint.HandleAsync);
 

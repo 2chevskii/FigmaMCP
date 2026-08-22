@@ -19,10 +19,7 @@ public sealed class ServerOptionsTests
     [InlineData("65535", 65535)]
     public void TryParseAcceptsPortsInRange(string value, int expectedPort)
     {
-        var success = ServerOptions.TryParse(
-            ["--port", value],
-            out var options,
-            out var error);
+        var success = ServerOptions.TryParse(["--port", value], out var options, out var error);
 
         Assert.True(success);
         Assert.Equal(expectedPort, options?.Port);
@@ -35,10 +32,7 @@ public sealed class ServerOptionsTests
     [InlineData("not-a-number")]
     public void TryParseRejectsInvalidPorts(string value)
     {
-        var success = ServerOptions.TryParse(
-            ["--port", value],
-            out var options,
-            out var error);
+        var success = ServerOptions.TryParse(["--port", value], out var options, out var error);
 
         Assert.False(success);
         Assert.Null(options);

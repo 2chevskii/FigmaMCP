@@ -21,7 +21,10 @@ public sealed record ServerOptions(int Port)
             return false;
         }
 
-        if (!int.TryParse(args[1], System.Globalization.CultureInfo.InvariantCulture, out var port) || port is < 1 or > 65535)
+        if (
+            !int.TryParse(args[1], System.Globalization.CultureInfo.InvariantCulture, out var port)
+            || port is < 1 or > 65535
+        )
         {
             error = "The port must be an integer from 1 through 65535.";
             return false;

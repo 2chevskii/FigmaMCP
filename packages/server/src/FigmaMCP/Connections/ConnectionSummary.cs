@@ -10,4 +10,5 @@ public sealed record ConnectionSummary(
     string EditorType,
     string Mode,
     DateTimeOffset ConnectedAt,
-    DateTimeOffset LastSeenAt);
+    DateTimeOffset LastSeenAt
+);

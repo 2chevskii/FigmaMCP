@@ -9,7 +9,10 @@ public sealed class PluginConnection : IDisposable
     private readonly WebSocket _socket;
     private readonly SemaphoreSlim _operations = new(1, 1);
     private readonly SemaphoreSlim _send = new(1, 1);
-    private readonly ConcurrentDictionary<Guid, TaskCompletionSource<ReadOnlyMemory<byte>>> _pending = new();
+    private readonly ConcurrentDictionary<
+        Guid,
+        TaskCompletionSource<ReadOnlyMemory<byte>>
+    > _pending = new();
 
     public PluginConnection(ConnectionSummary summary, WebSocket socket)
     {
@@ -31,7 +34,8 @@ public sealed class PluginConnection : IDisposable
         string pageId,
         string pageName,
         string editorType,
-        string mode)
+        string mode
+    )
     {
         Summary = Summary with
         {
@@ -70,7 +74,8 @@ public sealed class PluginConnection : IDisposable
     public async Task<ReadOnlyMemory<byte>> RequestAsync(
         string method,
         ReadOnlyMemory<byte> payload,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         await _operations.WaitAsync(cancellationToken);
 
@@ -78,13 +83,15 @@ public sealed class PluginConnection : IDisposable
         {
             var requestId = Guid.NewGuid();
             var completion = new TaskCompletionSource<ReadOnlyMemory<byte>>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
+                TaskCreationOptions.RunContinuationsAsynchronously
+            );
 
             if (!_pending.TryAdd(requestId, completion))
             {
                 throw new BridgeRpcException(
                     "plugin_protocol_error",
-                    "Unable to register the plugin request.");
+                    "Unable to register the plugin request."
+                );
             }
 
             try
@@ -98,18 +105,22 @@ public sealed class PluginConnection : IDisposable
                         method,
                         payload,
                         null,
-                        DateTimeOffset.UtcNow),
-                    cancellationToken);
+                        DateTimeOffset.UtcNow
+                    ),
+                    cancellationToken
+                );
 
                 return await completion.Task.WaitAsync(
                     BridgeProtocol.RequestTimeout,
-                    cancellationToken);
+                    cancellationToken
+                );
             }
             catch (TimeoutException)
             {
                 throw new BridgeRpcException(
                     "plugin_timeout",
-                    "The Figma plugin did not respond within thirty seconds.");
+                    "The Figma plugin did not respond within thirty seconds."
+                );
             }
             finally
             {
@@ -122,9 +133,7 @@ public sealed class PluginConnection : IDisposable
         }
     }
 
-    public async Task SendAsync(
-        BridgeEnvelope envelope,
-        CancellationToken cancellationToken)
+    public async Task SendAsync(BridgeEnvelope envelope, CancellationToken cancellationToken)
     {
         var bytes = BridgeEnvelopeCodec.Encode(envelope);
         await _send.WaitAsync(cancellationToken);
@@ -135,7 +144,8 @@ public sealed class PluginConnection : IDisposable
                 bytes,
                 WebSocketMessageType.Binary,
                 endOfMessage: true,
-                cancellationToken);
+                cancellationToken
+            );
         }
         finally
         {
@@ -146,7 +156,8 @@ public sealed class PluginConnection : IDisposable
     public async Task CloseAsync(
         WebSocketCloseStatus status,
         string reason,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (_socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
         {

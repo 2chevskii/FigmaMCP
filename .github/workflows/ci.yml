@@ -10,6 +10,39 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
+  format-check:
+    name: Format check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: packages/server/global.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Check server formatting
+        shell: pwsh
+        working-directory: packages/server
+        run: |
+          dotnet tool restore
+          dotnet csharpier check .
+
+      - name: Install plugin dependencies
+        run: npm ci --prefix packages/plugin
+
+      - name: Check plugin formatting
+        run: npm run format:check --prefix packages/plugin
+
   server-build:
     name: Server — build
     runs-on: windows-latest

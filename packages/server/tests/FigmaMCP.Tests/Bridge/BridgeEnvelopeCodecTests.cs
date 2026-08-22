@@ -18,7 +18,8 @@ public sealed class BridgeEnvelopeCodecTests
             "get_document_metadata",
             BridgeEnvelopeCodec.EmptyMap(),
             null,
-            sentAt);
+            sentAt
+        );
 
         var decoded = BridgeEnvelopeCodec.Decode(BridgeEnvelopeCodec.Encode(envelope));
 
@@ -42,7 +43,8 @@ public sealed class BridgeEnvelopeCodecTests
             null,
             null,
             new BridgeError("figma_api_error", "Unable to read document metadata."),
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow
+        );
 
         var decoded = BridgeEnvelopeCodec.Decode(BridgeEnvelopeCodec.Encode(envelope));
 

@@ -15,15 +15,14 @@ public sealed class BridgePayloadCodecTests
               "limit": 25,
               "options": { "include_children": true }
             }
-            """);
+            """
+        );
 
-        var decoded = BridgePayloadCodec.Decode(
-            BridgePayloadCodec.Encode(input.RootElement));
+        var decoded = BridgePayloadCodec.Decode(BridgePayloadCodec.Encode(input.RootElement));
 
         Assert.Equal("1:2", decoded.GetProperty("node_ids")[0].GetString());
         Assert.Equal(25, decoded.GetProperty("limit").GetInt32());
-        Assert.True(
-            decoded.GetProperty("options").GetProperty("include_children").GetBoolean());
+        Assert.True(decoded.GetProperty("options").GetProperty("include_children").GetBoolean());
     }
 
     [Fact]

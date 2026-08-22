@@ -27,18 +27,18 @@ permission-gated APIs can vary by Figma runtime, account, and file.
 
 ## Connection and document context
 
-| Tool                          | Input object                                                                            |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| `list_figma_connections`      | None                                                                                    |
+| Tool                          | Input object                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `list_figma_connections`      | None                                                                           |
 | `get_figma_document_metadata` | None beyond `connection_id`; an alias for `get_figma_document`                 |
-| `get_figma_capabilities`      | None                                                                                    |
-| `get_figma_document`          | None                                                                                    |
-| `list_figma_pages`            | Optional `cursor`, `limit`                                                              |
-| `load_figma_page`             | `page_id`                                                                               |
-| `get_figma_selection`         | None                                                                                    |
-| `set_figma_selection`         | `node_ids`, optional `focus`                                                            |
-| `set_figma_current_page`      | `page_id`                                                                               |
-| `get_figma_document_changes`  | Optional `cursor`, `limit`; pass the returned `next_cursor` into the next poll          |
+| `get_figma_capabilities`      | None                                                                           |
+| `get_figma_document`          | None                                                                           |
+| `list_figma_pages`            | Optional `cursor`, `limit`                                                     |
+| `load_figma_page`             | `page_id`                                                                      |
+| `get_figma_selection`         | None                                                                           |
+| `set_figma_selection`         | `node_ids`, optional `focus`                                                   |
+| `set_figma_current_page`      | `page_id`                                                                      |
+| `get_figma_document_changes`  | Optional `cursor`, `limit`; pass the returned `next_cursor` into the next poll |
 
 ## Scene-tree reads
 

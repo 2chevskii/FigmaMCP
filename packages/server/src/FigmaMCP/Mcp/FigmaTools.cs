@@ -18,45 +18,51 @@ public sealed partial class FigmaTools
     public FigmaTools(PluginConnectionRegistry registry) => _registry = registry;
 
     [McpServerTool(Name = "list_figma_connections", Title = "List Figma connections")]
-    [Description("Discover all currently connected Figma plugin invocations before document-specific work.")]
-    public object ListFigmaConnections() => new
-    {
-        connections = _registry.Snapshot().Select(connection => new
+    [Description(
+        "Discover all currently connected Figma plugin invocations before document-specific work."
+    )]
+    public object ListFigmaConnections() =>
+        new
         {
-            connection_id = connection.ConnectionId.ToString("D"),
-            plugin_version = connection.PluginVersion,
-            protocol_version = connection.ProtocolVersion,
-            document_name = connection.DocumentName,
-            current_page = new
-            {
-                id = connection.CurrentPageId,
-                name = connection.CurrentPageName,
-            },
-            editor_type = connection.EditorType,
-            mode = connection.Mode,
-            connected_at = connection.ConnectedAt,
-            last_seen_at = connection.LastSeenAt,
-        }).ToArray(),
-    };
+            connections = _registry
+                .Snapshot()
+                .Select(connection => new
+                {
+                    connection_id = connection.ConnectionId.ToString("D"),
+                    plugin_version = connection.PluginVersion,
+                    protocol_version = connection.ProtocolVersion,
+                    document_name = connection.DocumentName,
+                    current_page = new
+                    {
+                        id = connection.CurrentPageId,
+                        name = connection.CurrentPageName,
+                    },
+                    editor_type = connection.EditorType,
+                    mode = connection.Mode,
+                    connected_at = connection.ConnectedAt,
+                    last_seen_at = connection.LastSeenAt,
+                })
+                .ToArray(),
+        };
 
     [McpServerTool(Name = "get_figma_document_metadata", Title = "Get Figma document metadata")]
-    [Description("Read a fresh bounded metadata snapshot from one explicitly selected live Figma plugin.")]
+    [Description(
+        "Read a fresh bounded metadata snapshot from one explicitly selected live Figma plugin."
+    )]
     public async Task<object> GetFigmaDocumentMetadata(
         [Description("The live Figma plugin connection UUID.")] string connection_id,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        return await InvokeAsync(
-            connection_id,
-            "get_document_metadata",
-            null,
-            cancellationToken);
+        return await InvokeAsync(connection_id, "get_document_metadata", null, cancellationToken);
     }
 
     private async Task<object> InvokeAsync(
         string connectionId,
         string method,
         JsonElement? input,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -72,7 +78,8 @@ public sealed partial class FigmaTools
         string connectionId,
         string method,
         JsonElement? input,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         if (!Guid.TryParseExact(connectionId, "D", out var id))
         {
@@ -83,7 +90,8 @@ public sealed partial class FigmaTools
             id,
             method,
             BridgePayloadCodec.Encode(input),
-            cancellationToken);
+            cancellationToken
+        );
         return BridgePayloadCodec.Decode(payload);
     }
 

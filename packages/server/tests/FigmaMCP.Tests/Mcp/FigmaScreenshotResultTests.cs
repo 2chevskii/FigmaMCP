@@ -21,7 +21,8 @@ public sealed class FigmaScreenshotResultTests
                 }
               ]
             }
-            """);
+            """
+        );
 
         var result = FigmaTools.CreateScreenshotResult(response.RootElement, "1:2");
 
@@ -34,13 +35,13 @@ public sealed class FigmaScreenshotResultTests
                 var image = Assert.IsType<ImageContentBlock>(content);
                 Assert.Equal("image/png", image.MimeType);
                 Assert.Equal(pngBytes, image.DecodedData.ToArray());
-            });
-        Assert.Equal(
-            "1:2",
-            result.StructuredContent!.Value.GetProperty("node_id").GetString());
+            }
+        );
+        Assert.Equal("1:2", result.StructuredContent!.Value.GetProperty("node_id").GetString());
         Assert.Equal(
             pngBytes.Length,
-            result.StructuredContent.Value.GetProperty("byte_length").GetInt32());
+            result.StructuredContent.Value.GetProperty("byte_length").GetInt32()
+        );
     }
 
     [Fact]
@@ -56,10 +57,12 @@ public sealed class FigmaScreenshotResultTests
                 }
               ]
             }
-            """);
+            """
+        );
 
-        var exception = Assert.Throws<FormatException>(
-            () => FigmaTools.CreateScreenshotResult(response.RootElement, "1:2"));
+        var exception = Assert.Throws<FormatException>(() =>
+            FigmaTools.CreateScreenshotResult(response.RootElement, "1:2")
+        );
 
         Assert.Contains("PNG bytes", exception.Message, StringComparison.Ordinal);
     }

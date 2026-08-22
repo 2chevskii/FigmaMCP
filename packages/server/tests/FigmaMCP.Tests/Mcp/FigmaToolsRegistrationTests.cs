@@ -10,10 +10,13 @@ public sealed class FigmaToolsRegistrationTests
     {
         var registeredNames = typeof(FigmaTools)
             .GetMethods()
-            .Select(method => method
-                .GetCustomAttributes(typeof(McpServerToolAttribute), inherit: false)
-                .Cast<McpServerToolAttribute>()
-                .SingleOrDefault()?.Name)
+            .Select(method =>
+                method
+                    .GetCustomAttributes(typeof(McpServerToolAttribute), inherit: false)
+                    .Cast<McpServerToolAttribute>()
+                    .SingleOrDefault()
+                    ?.Name
+            )
             .Where(name => name is not null)
             .ToHashSet(StringComparer.Ordinal);
 

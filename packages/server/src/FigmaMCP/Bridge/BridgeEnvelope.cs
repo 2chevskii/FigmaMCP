@@ -12,7 +12,8 @@ public sealed record BridgeEnvelope(
     string? Method,
     ReadOnlyMemory<byte>? Payload,
     BridgeError? Error,
-    DateTimeOffset SentAt);
+    DateTimeOffset SentAt
+);
 
 public sealed record BridgeError(string Code, string Message);
 
@@ -90,14 +91,24 @@ public static class BridgeEnvelopeCodec
             throw new BridgeProtocolException("Bridge envelope is missing required fields.");
         }
 
-        return new BridgeEnvelope(type, protocol.Value, connection, request, method, payload, error, sentAt.Value);
+        return new BridgeEnvelope(
+            type,
+            protocol.Value,
+            connection,
+            request,
+            method,
+            payload,
+            error,
+            sentAt.Value
+        );
     }
 
     public static byte[] Encode(BridgeEnvelope envelope)
     {
         var buffer = new ArrayBufferWriter<byte>();
         var writer = new MessagePackWriter(buffer);
-        var fields = 3
+        var fields =
+            3
             + Count(envelope.ConnectionId)
             + Count(envelope.RequestId)
             + Count(envelope.Method)
@@ -110,7 +121,8 @@ public static class BridgeEnvelopeCodec
         Write(
             ref writer,
             "sent_at",
-            envelope.SentAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+            envelope.SentAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)
+        );
 
         if (envelope.ConnectionId is { } connection)
         {
@@ -197,7 +209,8 @@ public static class BridgeEnvelopeCodec
     private static Guid ReadGuid(ref MessagePackReader reader, string field)
     {
         var raw = ReadString(ref reader, field);
-        return Guid.TryParseExact(raw, "D", out var guid)
+        return
+            Guid.TryParseExact(raw, "D", out var guid)
             && string.Equals(raw, guid.ToString("D"), StringComparison.Ordinal)
             ? guid
             : throw new BridgeProtocolException($"{field} must be a lowercase UUID.");
@@ -208,17 +221,22 @@ public static class BridgeEnvelopeCodec
         var value = reader.ReadString();
         return !string.IsNullOrEmpty(value) && value.Length <= 256 * 1024
             ? value
-            : throw new BridgeProtocolException($"{field} must be a non-empty string within the limit.");
+            : throw new BridgeProtocolException(
+                $"{field} must be a non-empty string within the limit."
+            );
     }
 
     private static DateTimeOffset ReadTimestamp(ref MessagePackReader reader)
     {
         var raw = ReadString(ref reader, "sent_at");
-        if (!DateTimeOffset.TryParse(
+        if (
+            !DateTimeOffset.TryParse(
                 raw,
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.RoundtripKind,
-                out var timestamp))
+                out var timestamp
+            )
+        )
         {
             throw new BridgeProtocolException("sent_at must be an ISO-8601 timestamp.");
         }
