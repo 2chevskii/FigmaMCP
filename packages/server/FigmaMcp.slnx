@@ -6,9 +6,9 @@
     <File Path="NuGet.config" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/FigmaMcp.Server/FigmaMcp.Server.csproj" />
+    <Project Path="src/FigmaMCP/FigmaMCP.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/FigmaMcp.Server.Tests/FigmaMcp.Server.Tests.csproj" />
+    <Project Path="tests/FigmaMCP.Tests/FigmaMCP.Tests.csproj" />
   </Folder>
 </Solution>

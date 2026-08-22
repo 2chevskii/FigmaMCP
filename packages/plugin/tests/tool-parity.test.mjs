@@ -13,7 +13,7 @@ const operationFiles = [
 
 test("every registered document tool has a plugin handler", async () => {
   const [registrationTest, ...operationSources] = await Promise.all([
-    readFile("../server/tests/FigmaMcp.Server.Tests/Mcp/FigmaToolsRegistrationTests.cs", "utf8"),
+    readFile("../server/tests/FigmaMCP.Tests/Mcp/FigmaToolsRegistrationTests.cs", "utf8"),
     ...operationFiles.map((path) => readFile(path, "utf8")),
   ]);
 
@@ -42,7 +42,7 @@ test("every registered document tool has a plugin handler", async () => {
 
 test("the Design connector does not register editor-specific product tools", async () => {
   const registrationTest = await readFile(
-    "../server/tests/FigmaMcp.Server.Tests/Mcp/FigmaToolsRegistrationTests.cs",
+    "../server/tests/FigmaMCP.Tests/Mcp/FigmaToolsRegistrationTests.cs",
     "utf8",
   );
 

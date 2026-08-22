@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: figma-mcp-server
-          path: packages/server/src/FigmaMcp.Server/bin/Release
+          path: packages/server/src/FigmaMCP/bin/Release
           if-no-files-found: error
 
   plugin:

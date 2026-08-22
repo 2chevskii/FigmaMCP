@@ -61,7 +61,7 @@ document-specific tools.
 To publish a standalone Windows binary:
 
 ```powershell
-dotnet publish .\packages\server\src\FigmaMcp.Server\FigmaMcp.Server.csproj `
+dotnet publish .\packages\server\src\FigmaMCP\FigmaMCP.csproj `
   --configuration Release `
   -p:PublishProfile=win-x64
 ```

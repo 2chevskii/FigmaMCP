@@ -15,8 +15,8 @@ flowchart TD
     plugin --> pluginTests[tests]
     plugin --> pluginDist[dist: generated, not committed]
     packages --> server[server]
-    server --> serverSrc[src/FigmaMcp.Server: local STDIO MCP and loopback /bridge]
-    server --> serverTests[tests/FigmaMcp.Server.Tests]
+    server --> serverSrc[src/FigmaMCP: local STDIO MCP and loopback /bridge]
+    server --> serverTests[tests/FigmaMCP.Tests]
     server --> solution[FigmaMcp.slnx]
 ```
 

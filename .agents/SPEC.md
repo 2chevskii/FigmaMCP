@@ -19,7 +19,7 @@ MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:384
 
 ### Components and scope
 
-- One .NET process: `FigmaMcp.Server`.
+- One .NET process: `FigmaMCP`.
 - The official MCP SDK with the STDIO transport.
 - A loopback WebSocket endpoint at `/bridge` for the plugin.
 - An in-memory registry of live plugin connections and pending RPCs.

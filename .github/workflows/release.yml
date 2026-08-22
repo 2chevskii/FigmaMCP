@@ -27,7 +27,7 @@ jobs:
 
       - name: Publish Windows companion
         run: >-
-          dotnet publish packages/server/src/FigmaMcp.Server/FigmaMcp.Server.csproj
+          dotnet publish packages/server/src/FigmaMCP/FigmaMCP.csproj
           --configuration Release
           -p:PublishProfile=win-x64
           --output "$env:RUNNER_TEMP/figma-mcp-server-win-x64"
