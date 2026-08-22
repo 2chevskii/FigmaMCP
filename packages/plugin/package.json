@@ -5,8 +5,8 @@
   "main": "dist/plugin.js",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "format": "prettier . ../docs --write",
-    "format:check": "prettier . ../docs --check",
+    "format": "prettier . ../../docs --write",
+    "format:check": "prettier . ../../docs --check",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

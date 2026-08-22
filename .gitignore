@@ -1,7 +1,7 @@
 bin/
 obj/
-plugin/node_modules/
-plugin/dist/
+packages/plugin/node_modules/
+packages/plugin/dist/
 web/*/node_modules/
 web/*/dist/
 web/*/*.tsbuildinfo

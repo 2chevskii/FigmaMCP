@@ -1,19 +1,19 @@
 ---
 name: plugin-prettier
-description: Format or verify formatting of the Figma plugin JavaScript and TypeScript project with its local Prettier package. Use for files under plugin/; do not use for C# server formatting.
+description: Format or verify formatting of the Figma plugin JavaScript and TypeScript project with its local Prettier package. Use for files under packages/plugin/; do not use for C# server formatting.
 ---
 
 # Prettier for the Figma plugin
 
-Run formatting commands from `plugin/`. Prettier is a development dependency declared in
-[`plugin/package.json`](../../../plugin/package.json); use that local package rather than installing
+Run formatting commands from `packages/plugin/`. Prettier is a development dependency declared in
+[`packages/plugin/package.json`](../../../packages/plugin/package.json); use that local package rather than installing
 or invoking a global formatter.
 
 Node.js is supplied by FNM through the user's PowerShell profile. Run npm commands in a profile-enabled
 PowerShell session. Prefer the project scripts:
 
 ```powershell
-# Working directory: plugin/
+# Working directory: packages/plugin/
 rtk pwsh -Command 'npm run format:check'
 ```
 
@@ -25,7 +25,7 @@ Before applying formatting, inspect `git status --short`: formatting writes file
 pre-existing user edits. For an explicit request to apply formatting, run:
 
 ```powershell
-# Working directory: plugin/
+# Working directory: packages/plugin/
 rtk pwsh -Command 'npm run format'
 ```
 

@@ -14,9 +14,9 @@ foreach ($command in @("dotnet", "npx")) {
     }
 }
 
-$repositoryRoot = $PSScriptRoot
-$solutionPath = Join-Path $repositoryRoot "server\FigmaMcp.slnx"
-$serverAssembly = Join-Path $repositoryRoot "server\src\FigmaMcp.Server\bin\$Configuration\net10.0\figma-mcp-server.dll"
+$repositoryRoot = Split-Path -Parent $PSScriptRoot
+$solutionPath = Join-Path $repositoryRoot "packages\server\FigmaMcp.slnx"
+$serverAssembly = Join-Path $repositoryRoot "packages\server\src\FigmaMcp.Server\bin\$Configuration\net10.0\figma-mcp-server.dll"
 
 if (-not $NoBuild) {
     & dotnet build $solutionPath --configuration $Configuration
