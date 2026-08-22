@@ -10,8 +10,8 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
-  server:
-    name: Server — test and build
+  server-build:
+    name: Server — build
     runs-on: windows-latest
     defaults:
       run:
@@ -19,6 +19,8 @@ jobs:
         working-directory: packages/server
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
@@ -31,8 +33,59 @@ jobs:
       - name: Build
         run: dotnet build FigmaMcp.slnx --configuration Release --no-restore
 
+      - name: Upload server build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-server-build
+          path: |
+            packages/server/**/bin
+            packages/server/**/obj
+          if-no-files-found: error
+
+  server-test:
+    name: Server — test
+    needs: server-build
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/server
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: packages/server/global.json
+
+      - name: Download server build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: figma-mcp-server-build
+          path: packages/server
+
       - name: Test
-        run: dotnet test --solution FigmaMcp.slnx --configuration Release --no-build
+        run: dotnet test --solution FigmaMcp.slnx --configuration Release --no-build --no-restore
+
+  server-publish:
+    name: Server — publish
+    needs: server-build
+    runs-on: windows-latest
+    steps:
+      - name: Download server build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: figma-mcp-server-build
+          path: packages/server
+
+      - name: Publish server artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-server
+          path: packages/server/src/FigmaMcp.Server/bin/Release
+          if-no-files-found: error
 
   plugin:
     name: Plugin — test and build
@@ -43,6 +96,8 @@ jobs:
         working-directory: packages/plugin
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
