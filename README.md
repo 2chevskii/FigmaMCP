@@ -44,7 +44,8 @@ describes Figma API capabilities and limits.
    ```
 
 3. In Figma Desktop, import `packages/plugin/dist/manifest.json` as a development plugin and open it
-   in the desired document. Keep the companion URL at `http://127.0.0.1:3846`.
+   in the desired document. Keep the Bridge port at `3846`, unless you configure a different port for
+   the server with `--port <1-65535>` or the server reports a fallback port on `stderr` at startup.
 
 4. Start Inspector to verify an MCP session. The script builds the server and passes it to Inspector
    as a STDIO process:
@@ -66,7 +67,8 @@ dotnet publish .\packages\server\src\FigmaMCP\FigmaMCP.csproj `
   -p:PublishProfile=win-x64
 ```
 
-Configure the generated `figma-mcp-server.exe` as the MCP server command in the client. Do not
+Configure the generated `figma-mcp-server.exe` as the MCP server command in the client. Add
+`--port <1-65535>` to select the local Bridge port when the default `3846` is unavailable. Do not
 redirect its `stdout`: it is reserved for MCP protocol traffic.
 
 ## Repository layout

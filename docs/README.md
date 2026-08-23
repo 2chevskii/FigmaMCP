@@ -35,8 +35,12 @@ The MCP client starts the executable as a child process. A client configuration 
 }
 ```
 
-The process listens on `127.0.0.1:3846/bridge` for the plugin. The bridge is loopback-only and must
-not bind to an external interface.
+The process listens on `127.0.0.1:3846/bridge` for the plugin by default. If no `--port` is supplied
+and `3846` is occupied, it detects that before Kestrel starts, tries subsequent ports through `65535`,
+and reports the selected fallback on `stderr`. Pass `--port <1-65535>` to use one specific bridge
+port; an explicit port is never changed.
+Set the Bridge plugin to the port the server selected. The bridge is loopback-only and must not bind
+to an external interface.
 
 ## Documentation map
 

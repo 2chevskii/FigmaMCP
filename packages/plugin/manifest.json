@@ -1,6 +1,6 @@
 {
-  "name": "figma-mcp-connector",
-  "id": "1662099735060529763",
+  "id": "dev.0x2c.figma.mcp-bridge-plugin",
+  "name": "FigmaMCP Bridge",
   "api": "1.0.0",
   "main": "plugin.js",
   "capabilities": [],
@@ -10,7 +10,7 @@
   "editorType": ["figma"],
   "ui": "ui.html",
   "networkAccess": {
-    "allowedDomains": ["ws://127.0.0.1:3846", "ws://localhost:3846"],
+    "allowedDomains": ["*"],
     "reasoning": "Connects the plugin UI to the local Figma MCP companion over the loopback WebSocket bridge."
   }
 }

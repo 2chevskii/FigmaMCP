@@ -1,6 +1,6 @@
 namespace FigmaMCP.Options;
 
-public sealed record ServerOptions(int Port)
+public sealed record ServerOptions(int Port, bool IsPortExplicit)
 {
     public const int DefaultPort = 3846;
 
@@ -11,7 +11,7 @@ public sealed record ServerOptions(int Port)
 
         if (args.Length == 0)
         {
-            options = new ServerOptions(DefaultPort);
+            options = new ServerOptions(DefaultPort, false);
             return true;
         }
 
@@ -30,7 +30,7 @@ public sealed record ServerOptions(int Port)
             return false;
         }
 
-        options = new ServerOptions(port);
+        options = new ServerOptions(port, true);
         return true;
     }
 }

@@ -12,13 +12,13 @@ export type ConnectionContext = {
 export type ControllerToUiMessage =
   | {
       type: "config_loaded";
-      serverUrl: string;
+      serverPort: number;
       context: ConnectionContext;
     }
   | { type: "bridge_frame"; bytes: Uint8Array }
   | { type: "context_dirty"; context: ConnectionContext };
 
 export type UiToControllerMessage =
-  | { type: "set_connection_settings"; serverUrl: string }
+  | { type: "set_connection_settings"; serverPort: number }
   | { type: "close_plugin" }
   | { type: "bridge_frame"; bytes: Uint8Array };

@@ -10,7 +10,7 @@ All runtime state is local to the user's machine and held in memory.
 ```mermaid
 flowchart LR
     client[MCP client] <-->|MCP / STDIO<br/>stdin / stdout| companion[Local MCP companion]
-    companion <-->|WebSocket / MessagePack<br/>127.0.0.1:3846/bridge| plugin[Figma plugin]
+    companion <-->|WebSocket / MessagePack<br/>127.0.0.1:&lt;bridge-port&gt;/bridge| plugin[Figma plugin]
     companion --- registry[(In-memory live connection registry)]
     registry --- plugin
     plugin --> api[Figma Plugin API]
@@ -26,7 +26,7 @@ The process has two transport roles:
 ## Connection lifecycle
 
 1. The MCP client starts the local companion and establishes a STDIO session.
-2. The plugin UI opens `ws://127.0.0.1:3846/bridge` with the `figma-mcp-bridge.v2` subprotocol.
+2. The plugin UI opens `ws://127.0.0.1:<bridge-port>/bridge` with the `figma-mcp-bridge.v2` subprotocol. The bridge port defaults to `3846` and can be set with the MCP server's `--port <1-65535>` argument.
 3. The plugin sends `hello` with a random `connection_id` and document context.
 4. The companion validates the message, stores the connection in the in-memory registry, and returns
    `hello_ack`.
@@ -61,5 +61,5 @@ The connection registry and pending requests live only in companion memory. Rest
 requires the plugin to reconnect.
 
 The bridge is loopback-only. It validates Host, Origin, and WebSocket subprotocol values before
-accepting a connection. The plugin stores the local companion URL and does not send an access token
+accepting a connection. The plugin stores only the local bridge port and does not send an access token
 in the WebSocket URL or bridge envelopes.

@@ -12,7 +12,7 @@ Figma MCP is a local companion for Figma documents with the Figma Bridge plugin 
 starts the companion as a child process and exchanges MCP messages over STDIO.
 
 ```text
-MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:3846/bridge ──> Bridge plugin
+MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:<bridge-port>/bridge ──> Bridge plugin
                                                                                          │
                                                                                   Figma Plugin API
 ```
@@ -25,7 +25,7 @@ MCP client ── stdin/stdout ──> local companion ── ws://127.0.0.1:384
 - An in-memory registry of live plugin connections and pending RPCs.
 - The MCP tool contract in `docs/TOOLS.md`, including explicit `connection_id`, bounded typed
   payloads, a 30-second bridge deadline, and idempotent mutations.
-- The existing Bridge plugin protocol and its local companion URL setting. The bridge does not
+- The existing Bridge plugin protocol and its local companion port setting. The bridge does not
   require or transmit an access token.
 
 ### STDIO contract
@@ -58,7 +58,7 @@ explicit user request. The companion is compatible with this protocol:
 
 ### Loopback boundary
 
-- Listen only on `127.0.0.1:3846/bridge`; do not bind to `0.0.0.0`, a LAN interface, or IPv6-any.
+- Listen only on `127.0.0.1:<bridge-port>/bridge`; do not bind to `0.0.0.0`, a LAN interface, or IPv6-any. The default port is `3846`; when no `--port` is supplied and it is occupied, detect that before Kestrel starts and try subsequent ports through `65535`. An explicit `--port <1-65535>` is never changed.
 - Accept only `127.0.0.1:<port>` and `localhost:<port>` Host values.
 - Accept only WebSocket upgrades using `figma-mcp-bridge.v2`, binary frames, and a missing or `null`
   Origin. Reject text frames and other browser origins.

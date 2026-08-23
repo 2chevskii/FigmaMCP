@@ -307,18 +307,20 @@
 
         <div class="settings">
           <div class="section-label">Connection</div>
-          <label class="field" for="server-url">
+          <label class="field" for="server-port">
             <span class="field-copy">
-              <span class="field-label">Local companion URL</span>
-              <span class="field-help">HTTP loopback address only</span>
+              <span class="field-label">Bridge port</span>
             </span>
             <input
-              id="server-url"
-              inputmode="url"
+              id="server-port"
+              type="number"
+              min="1"
+              max="65535"
+              inputmode="numeric"
               autocomplete="off"
               spellcheck="false"
               aria-describedby="error"
-              value="http://127.0.0.1:3846"
+              value="3846"
             />
           </label>
           <div id="error" role="alert" aria-live="assertive"></div>

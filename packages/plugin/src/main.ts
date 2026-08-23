@@ -1,5 +1,10 @@
 import { Envelope, now, pack, PROTOCOL_VERSION, unpack } from "./bridge/protocol";
-import { DEFAULT_SERVER_URL, isServerUrl, PLUGIN_VERSION, SERVER_URL_STORAGE_KEY } from "./config";
+import {
+  DEFAULT_SERVER_PORT,
+  isServerPort,
+  PLUGIN_VERSION,
+  SERVER_PORT_STORAGE_KEY,
+} from "./config";
 import { ConnectionContext, ControllerToUiMessage, UiToControllerMessage } from "./messages";
 import { assetEditorHandlers } from "./operations/assets-editor";
 import { metadataMotionHandlers } from "./operations/metadata-motion";
@@ -27,13 +32,10 @@ async function initialize(): Promise<void> {
 }
 
 async function loadConfig(): Promise<void> {
-  const storedServerUrl: unknown = await figma.clientStorage.getAsync(SERVER_URL_STORAGE_KEY);
+  const storedServerPort: unknown = await figma.clientStorage.getAsync(SERVER_PORT_STORAGE_KEY);
   postToUi({
     type: "config_loaded",
-    serverUrl:
-      typeof storedServerUrl === "string" && isServerUrl(storedServerUrl)
-        ? storedServerUrl
-        : DEFAULT_SERVER_URL,
+    serverPort: isServerPort(storedServerPort) ? storedServerPort : DEFAULT_SERVER_PORT,
     context: readConnectionContext(),
   });
 }
@@ -41,7 +43,7 @@ async function loadConfig(): Promise<void> {
 function handleUiMessage(message: UiToControllerMessage): void {
   switch (message.type) {
     case "set_connection_settings":
-      void figma.clientStorage.setAsync(SERVER_URL_STORAGE_KEY, message.serverUrl);
+      void figma.clientStorage.setAsync(SERVER_PORT_STORAGE_KEY, message.serverPort);
       break;
     case "close_plugin":
       figma.closePlugin();
