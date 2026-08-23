@@ -157,7 +157,7 @@ function handleControllerMessage(
       break;
     case "bridge_frame":
       if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(message.bytes);
+        socket.send(toArrayBuffer(message.bytes));
       }
       break;
     case "context_dirty":
@@ -221,8 +221,12 @@ function send(envelope: Envelope): void {
 
 function sendToSocket(target: WebSocket, envelope: Envelope): void {
   if (target.readyState === WebSocket.OPEN) {
-    target.send(pack(envelope));
+    target.send(toArrayBuffer(pack(envelope)));
   }
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return new Uint8Array(bytes).buffer;
 }
 
 function scheduleReconnect(): void {

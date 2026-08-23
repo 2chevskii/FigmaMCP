@@ -3,9 +3,11 @@
     "target": "es2020",
     "lib": ["es2020", "dom"],
     "strict": true,
-    "noEmit": true,
+    "noEmitOnError": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    "outDir": "./.build",
+    "rootDir": "./src",
     "skipLibCheck": true,
     "types": ["@figma/plugin-typings"]
   },

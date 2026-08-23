@@ -1,14 +1,10 @@
-import { build } from "esbuild";
+import { rolldown } from "rolldown";
 import vm from "node:vm";
 
 export async function loadTypescriptModule(entryPoint, globals = {}) {
-  const result = await build({
-    entryPoints: [entryPoint],
-    bundle: true,
-    format: "cjs",
-    platform: "node",
-    write: false,
-  });
+  const bundle = await rolldown({ input: entryPoint });
+  const result = await bundle.generate({ format: "cjs" });
+  await bundle.close();
   const module = { exports: {} };
   const sandbox = {
     module,
@@ -18,6 +14,6 @@ export async function loadTypescriptModule(entryPoint, globals = {}) {
     ...globals,
   };
 
-  vm.runInNewContext(result.outputFiles[0].text, sandbox);
+  vm.runInNewContext(result.output[0].code, sandbox);
   return module.exports;
 }

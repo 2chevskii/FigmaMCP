@@ -1,0 +1,7 @@
+{
+  "[csharp]": {
+    "editor.defaultFormatter": "csharpier.csharpier-vscode"
+  },
+  "js/ts.tsdk.path": "./packages/plugin/node_modules/@typescript/native/lib",
+  "js/ts.experimental.useTsgo": true
+}

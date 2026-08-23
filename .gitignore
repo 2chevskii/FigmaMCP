@@ -7,6 +7,9 @@ web/*/dist/
 web/*/*.tsbuildinfo
 .idea/
 .vscode/
+!.vscode/
+.vscode/*
+!.vscode/settings.json
 TestResults/
 *.env
 *.env.*
