@@ -10,8 +10,7 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
-  format-check:
-    name: Format check
+  server-format:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -23,19 +22,26 @@ jobs:
         with:
           global-json-file: packages/server/global.json
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: packages/plugin/package-lock.json
-
       - name: Check server formatting
         shell: pwsh
         working-directory: packages/server
         run: |
           dotnet tool restore
           dotnet csharpier check .
+
+  plugin-format:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
 
       - name: Install plugin dependencies
         run: npm ci --prefix packages/plugin
@@ -44,7 +50,6 @@ jobs:
         run: npm run format:check --prefix packages/plugin
 
   server-build:
-    name: Server — build
     runs-on: windows-latest
     defaults:
       run:
@@ -76,7 +81,6 @@ jobs:
           if-no-files-found: error
 
   server-test:
-    name: Server — test
     needs: server-build
     runs-on: windows-latest
     defaults:
@@ -103,7 +107,6 @@ jobs:
         run: dotnet test --solution FigmaMcp.slnx --configuration Release --no-build --no-restore
 
   server-publish:
-    name: Server — publish
     needs: server-build
     runs-on: windows-latest
     steps:
@@ -120,8 +123,7 @@ jobs:
           path: packages/server/src/FigmaMCP/bin/Release
           if-no-files-found: error
 
-  plugin:
-    name: Plugin — test and build
+  plugin-lint:
     runs-on: windows-latest
     defaults:
       run:
@@ -145,11 +147,74 @@ jobs:
       - name: Lint
         run: npm run lint
 
+  plugin-typecheck:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/plugin
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Type-check
         run: npm run typecheck
 
+  plugin-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/plugin
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Test
         run: npm test
+
+  plugin-build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/plugin
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build
         run: npm run build
