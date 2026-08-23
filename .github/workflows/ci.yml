@@ -103,6 +103,9 @@ jobs:
           name: figma-mcp-server-build
           path: packages/server
 
+      - name: Restore test dependencies
+        run: dotnet restore FigmaMcp.slnx
+
       - name: Test
         run: dotnet test --solution FigmaMcp.slnx --configuration Release --no-build --no-restore
 
