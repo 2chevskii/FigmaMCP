@@ -105,7 +105,29 @@ jobs:
         run: dotnet restore FigmaMcp.slnx
 
       - name: Test
-        run: dotnet test --solution FigmaMcp.slnx --configuration Release --no-build --no-restore
+        run: |
+          $resultsDirectory = Join-Path $PWD "TestResults"
+          New-Item -Path $resultsDirectory -ItemType Directory -Force | Out-Null
+          dotnet test `
+            --solution FigmaMcp.slnx `
+            --configuration Release `
+            --no-build `
+            --no-restore `
+            --results-directory $resultsDirectory `
+            --report-trx `
+            --report-trx-filename server.trx `
+            --coverage `
+            --coverage-output-format cobertura `
+            --coverage-output (Join-Path $resultsDirectory "coverage.cobertura.xml")
+
+      - name: Upload server test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-test-results
+          path: packages/server/TestResults
+          if-no-files-found: warn
+          retention-days: 14
 
   server-publish:
     needs: server-build
@@ -194,7 +216,22 @@ jobs:
         run: npm ci
 
       - name: Test
-        run: npm test
+        run: |
+          New-Item -Path TestResults/tests, TestResults/coverage -ItemType Directory -Force | Out-Null
+          npm run test:coverage
+
+      - name: Generate JUnit report
+        if: ${{ !cancelled() }}
+        run: npm run test:report
+
+      - name: Upload plugin test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugin-test-results
+          path: packages/plugin/TestResults
+          if-no-files-found: warn
+          retention-days: 14
 
   plugin-build:
     runs-on: windows-latest
@@ -226,3 +263,35 @@ jobs:
           name: figma-mcp-plugin
           path: packages/plugin/dist
           if-no-files-found: error
+
+  summary:
+    if: ${{ always() && !cancelled() }}
+    needs:
+      - server-test
+      - plugin-test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Download server test results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: server-test-results
+          path: artifacts/summary/server
+
+      - name: Download plugin test results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: plugin-test-results
+          path: artifacts/summary/plugin
+
+      - name: Publish test and coverage summary
+        shell: pwsh
+        run: >-
+          ./scripts/Write-CiSummary.ps1
+          -ServerResultsPath ./artifacts/summary/server
+          -PluginResultsPath ./artifacts/summary/plugin

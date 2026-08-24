@@ -1,4 +1,5 @@
 import { rolldown } from "rolldown";
+import { resolve } from "node:path";
 import vm from "node:vm";
 
 export async function loadTypescriptModule(entryPoint, globals = {}) {
@@ -14,6 +15,6 @@ export async function loadTypescriptModule(entryPoint, globals = {}) {
     ...globals,
   };
 
-  vm.runInNewContext(result.output[0].code, sandbox);
+  vm.runInNewContext(result.output[0].code, sandbox, { filename: resolve(entryPoint) });
   return module.exports;
 }

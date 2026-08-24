@@ -13,6 +13,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "node --test tests/*.test.mjs",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=src/** --test-coverage-exclude=tests/** --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=TestResults/coverage/lcov.info tests/*.test.mjs",
+    "test:report": "node --test --test-reporter=junit --test-reporter-destination=TestResults/tests/junit.xml tests/*.test.mjs",
     "watch": "node scripts/build.mjs --watch"
   },
   "author": "2CHEVSKII",
