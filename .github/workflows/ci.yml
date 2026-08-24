@@ -289,12 +289,12 @@ jobs:
           dotnet-version: 8.x
 
       - name: Publish test results
-        if: ${{ hashFiles('artifacts/summary/server/**/*.trx', 'artifacts/summary/plugin/**/*.xml') != '' }}
+        if: ${{ hashFiles('artifacts/summary/server/**/*.trx', 'artifacts/summary/plugin/tests/*.xml') != '' }}
         uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
         with:
           files: |
             artifacts/summary/server/**/*.trx
-            artifacts/summary/plugin/**/*.xml
+            artifacts/summary/plugin/tests/*.xml
           check_run: false
           comment_mode: off
           compare_to_earlier_commit: false
