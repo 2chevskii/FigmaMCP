@@ -220,16 +220,14 @@ jobs:
           New-Item -Path TestResults/tests, TestResults/coverage -ItemType Directory -Force | Out-Null
           npm run test:coverage
 
-      - name: Generate JUnit report
-        if: ${{ !cancelled() }}
-        run: npm run test:report
-
       - name: Upload plugin test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: plugin-test-results
-          path: packages/plugin/TestResults
+          path: |
+            packages/plugin/TestResults/tests/junit.xml
+            packages/plugin/TestResults/coverage/cobertura-coverage.xml
           if-no-files-found: warn
           retention-days: 14
 
@@ -269,12 +267,8 @@ jobs:
     needs:
       - server-test
       - plugin-test
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 1
-
       - name: Download server test results
         continue-on-error: true
         uses: actions/download-artifact@v8
@@ -289,9 +283,41 @@ jobs:
           name: plugin-test-results
           path: artifacts/summary/plugin
 
-      - name: Publish test and coverage summary
+      - name: Set up .NET for coverage reporting
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.x
+
+      - name: Publish test results
+        if: ${{ hashFiles('artifacts/summary/server/**/*.trx', 'artifacts/summary/plugin/**/*.xml') != '' }}
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
+        with:
+          files: |
+            artifacts/summary/server/**/*.trx
+            artifacts/summary/plugin/**/*.xml
+          check_run: false
+          comment_mode: off
+          compare_to_earlier_commit: false
+
+      - name: Generate coverage report
+        if: ${{ hashFiles('artifacts/summary/server/**/*.cobertura.xml', 'artifacts/summary/plugin/coverage/*.xml') != '' }}
+        uses: danielpalme/ReportGenerator-GitHub-Action@049f7ec958c672fd31d5cc1cb01622dc8d2e23ab # 5.5.10
+        with:
+          reports: artifacts/summary/server/**/*.cobertura.xml;artifacts/summary/plugin/coverage/*.xml
+          targetdir: artifacts/summary/coverage
+          reporttypes: Html;MarkdownSummaryGithub
+          title: figma-mcp coverage
+
+      - name: Publish coverage summary
+        if: ${{ hashFiles('artifacts/summary/coverage/SummaryGithub.md') != '' }}
         shell: pwsh
-        run: >-
-          ./scripts/Write-CiSummary.ps1
-          -ServerResultsPath ./artifacts/summary/server
-          -PluginResultsPath ./artifacts/summary/plugin
+        run: Get-Content -Raw -LiteralPath ./artifacts/summary/coverage/SummaryGithub.md >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage report
+        if: ${{ hashFiles('artifacts/summary/coverage/**') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: artifacts/summary/coverage
+          if-no-files-found: error
+          retention-days: 14

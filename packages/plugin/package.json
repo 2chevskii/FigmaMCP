@@ -13,8 +13,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "node --test tests/*.test.mjs",
-    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=src/** --test-coverage-exclude=tests/** --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=TestResults/coverage/lcov.info tests/*.test.mjs",
-    "test:report": "node --test --test-reporter=junit --test-reporter-destination=TestResults/tests/junit.xml tests/*.test.mjs",
+    "test:coverage": "c8 --all --src=src --include=src/**/*.ts --exclude=tests/** --reporter=text --reporter=cobertura --reports-dir=TestResults/coverage node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=TestResults/tests/junit.xml tests/*.test.mjs",
     "watch": "node scripts/build.mjs --watch"
   },
   "author": "2CHEVSKII",
@@ -24,6 +23,7 @@
     "@figma/eslint-plugin-figma-plugins": "*",
     "@figma/plugin-typings": "*",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "c8": "^12.0.0",
     "eslint": "^9.39.4",
     "prettier": "^3.8.3",
     "rolldown": "^1.2.5",
