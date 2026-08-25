@@ -1,1 +1,25 @@
-*          text=auto eol=lf
+# Normalize text files to LF in the working tree and repository.
+* text=auto eol=lf
+
+# Binary Figma documents and assets used by the plugin and documentation.
+*.fig binary
+*.gif binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.webp binary
+
+# Binary fonts and distributable archives.
+*.eot binary
+*.otf binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.7z binary
+*.gz binary
+*.nupkg binary
+*.snupkg binary
+*.tar binary
+*.zip binary
