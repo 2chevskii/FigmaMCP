@@ -5,6 +5,7 @@ on:
 
 jobs:
   summary:
+    name: Test results
     runs-on: ubuntu-latest
     steps:
       - name: Download server test results

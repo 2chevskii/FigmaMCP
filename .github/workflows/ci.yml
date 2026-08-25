@@ -11,6 +11,7 @@ jobs:
     uses: ./.github/workflows/plugin-ci.yml
 
   summary:
+    name: Publish reports
     if: ${{ always() && !cancelled() }}
     needs:
       - server
