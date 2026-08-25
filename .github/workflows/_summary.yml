@@ -6,7 +6,7 @@ on:
 jobs:
   summary:
     name: Test results
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Download server test results
         continue-on-error: true

@@ -9,7 +9,7 @@ env:
 
 jobs:
   server-format:
-    runs-on: windows-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -28,7 +28,7 @@ jobs:
           dotnet csharpier check .
 
   server-build:
-    runs-on: windows-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: pwsh
@@ -60,7 +60,7 @@ jobs:
 
   server-test:
     needs: server-build
-    runs-on: windows-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: pwsh
@@ -111,7 +111,7 @@ jobs:
 
   server-publish:
     needs: server-build
-    runs-on: windows-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Download server build artifact
         uses: actions/download-artifact@v8

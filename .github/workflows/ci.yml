@@ -5,10 +5,10 @@ permissions:
 
 jobs:
   server:
-    uses: ./.github/workflows/server-ci.yml
+    uses: ./.github/workflows/_server_ci.yml
 
   plugin:
-    uses: ./.github/workflows/plugin-ci.yml
+    uses: ./.github/workflows/_plugin_ci.yml
 
   summary:
     name: Publish reports
@@ -16,4 +16,4 @@ jobs:
     needs:
       - server
       - plugin
-    uses: ./.github/workflows/ci-summary.yml
+    uses: ./.github/workflows/_summary.yml
