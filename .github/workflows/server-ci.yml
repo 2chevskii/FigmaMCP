@@ -1,0 +1,127 @@
+name: Server CI
+
+on:
+  workflow_call:
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+
+jobs:
+  server-format:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: packages/server/global.json
+
+      - name: Check server formatting
+        shell: pwsh
+        working-directory: packages/server
+        run: |
+          dotnet tool restore
+          dotnet csharpier check .
+
+  server-build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/server
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: packages/server/global.json
+
+      - name: Restore
+        run: dotnet restore FigmaMcp.slnx
+
+      - name: Build
+        run: dotnet build FigmaMcp.slnx --configuration Release --no-restore
+
+      - name: Upload server build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-server-build
+          path: |
+            packages/server/**/bin
+            packages/server/**/obj
+          if-no-files-found: error
+
+  server-test:
+    needs: server-build
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: packages/server
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: packages/server/global.json
+
+      - name: Download server build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: figma-mcp-server-build
+          path: packages/server
+
+      - name: Restore test dependencies
+        run: dotnet restore FigmaMcp.slnx
+
+      - name: Test
+        run: |
+          $resultsDirectory = Join-Path $PWD "TestResults"
+          New-Item -Path $resultsDirectory -ItemType Directory -Force | Out-Null
+          dotnet test `
+            --solution FigmaMcp.slnx `
+            --configuration Release `
+            --no-build `
+            --no-restore `
+            --results-directory $resultsDirectory `
+            --report-trx `
+            --report-trx-filename server.trx `
+            --coverage `
+            --coverage-output-format cobertura `
+            --coverage-output (Join-Path $resultsDirectory "coverage.cobertura.xml")
+
+      - name: Upload server test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-test-results
+          path: packages/server/TestResults
+          if-no-files-found: warn
+          retention-days: 14
+
+  server-publish:
+    needs: server-build
+    runs-on: windows-latest
+    steps:
+      - name: Download server build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: figma-mcp-server-build
+          path: packages/server
+
+      - name: Publish server artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-server
+          path: packages/server/src/FigmaMCP/bin/Release
+          if-no-files-found: error
