@@ -1,7 +1,7 @@
 using FigmaMCP.Mcp;
 using ModelContextProtocol.Server;
 
-namespace FigmaMCP.Tests.Mcp;
+namespace FigmaMCP.Tests.Unit.Mcp;
 
 public sealed class FigmaToolsRegistrationTests
 {

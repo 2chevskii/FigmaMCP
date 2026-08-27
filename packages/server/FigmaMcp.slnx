@@ -9,6 +9,6 @@
     <Project Path="src/FigmaMCP/FigmaMCP.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/FigmaMCP.Tests/FigmaMCP.Tests.csproj" />
+    <Project Path="tests/FigmaMCP.Tests.Unit/FigmaMCP.Tests.Unit.csproj" />
   </Folder>
 </Solution>

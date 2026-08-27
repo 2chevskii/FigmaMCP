@@ -1,6 +1,6 @@
 using FigmaMCP.Options;
 
-namespace FigmaMCP.Tests.Options;
+namespace FigmaMCP.Tests.Unit.Options;
 
 public sealed class ServerOptionsTests
 {

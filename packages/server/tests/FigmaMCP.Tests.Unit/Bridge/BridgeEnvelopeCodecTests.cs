@@ -1,6 +1,6 @@
 using FigmaMCP.Bridge;
 
-namespace FigmaMCP.Tests.Bridge;
+namespace FigmaMCP.Tests.Unit.Bridge;
 
 public sealed class BridgeEnvelopeCodecTests
 {

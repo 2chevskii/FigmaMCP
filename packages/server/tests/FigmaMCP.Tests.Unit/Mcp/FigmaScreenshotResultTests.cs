@@ -2,7 +2,7 @@ using System.Text.Json;
 using FigmaMCP.Mcp;
 using ModelContextProtocol.Protocol;
 
-namespace FigmaMCP.Tests.Mcp;
+namespace FigmaMCP.Tests.Unit.Mcp;
 
 public sealed class FigmaScreenshotResultTests
 {
