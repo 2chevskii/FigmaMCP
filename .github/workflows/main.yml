@@ -1,0 +1,280 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+
+jobs:
+  server_format_check:
+    name: Server format check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - run: bash ./build.sh --target :server:format
+
+  server_build:
+    name: Server build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build server
+        run: bash ./build.sh --target :server:build --configuration Release
+
+      - name: Upload server build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-server-build
+          path: |
+            packages/server/**/bin
+            packages/server/**/obj
+          if-no-files-found: error
+
+  server_test:
+    name: Server test
+    needs: server_build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Download server build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: figma-mcp-server-build
+          path: packages/server
+
+      - name: Test server
+        run: bash ./build.sh --target :server:test --configuration Release --no-build
+
+      - name: Upload server test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-test-results
+          path: packages/server/TestResults
+          if-no-files-found: warn
+          retention-days: 14
+
+  server_publish:
+    name: Publish server artifact
+    needs: server_build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download server build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: figma-mcp-server-build
+          path: packages/server
+
+      - name: Upload server artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-server
+          path: packages/server/src/FigmaMCP/bin/Release
+          if-no-files-found: error
+
+  plugin_format_check:
+    name: Plugin format check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Check plugin formatting
+        run: bash ./build.sh --target :plugin:format
+
+  plugin_lint:
+    name: Plugin lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Lint plugin
+        run: bash ./build.sh --target :plugin:lint
+
+  plugin_test:
+    name: Plugin test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Test plugin
+        run: bash ./build.sh --target :plugin:test
+
+      - name: Upload plugin test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugin-test-results
+          path: |
+            packages/plugin/TestResults/tests/junit.xml
+            packages/plugin/TestResults/coverage/cobertura-coverage.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  plugin_build:
+    name: Plugin build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/plugin/package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build plugin
+        run: bash ./build.sh --target :plugin:build
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-plugin
+          path: packages/plugin/dist
+          if-no-files-found: error
+
+  summary:
+    name: Publish reports
+    if: ${{ always() && !cancelled() }}
+    needs:
+      - server_format_check
+      - server_build
+      - server_test
+      - server_publish
+      - plugin_format_check
+      - plugin_lint
+      - plugin_test
+      - plugin_build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download server test results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: server-test-results
+          path: artifacts/summary/server
+
+      - name: Download plugin test results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: plugin-test-results
+          path: artifacts/summary/plugin
+
+      - name: Set up .NET for coverage reporting
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.x
+
+      - name: Publish test results
+        if: ${{ hashFiles('artifacts/summary/server/**/*.trx', 'artifacts/summary/plugin/tests/*.xml') != '' }}
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: |
+            artifacts/summary/server/**/*.trx
+            artifacts/summary/plugin/tests/*.xml
+          check_run: false
+          comment_mode: off
+          compare_to_earlier_commit: false
+
+      - name: Generate coverage report
+        if: ${{ hashFiles('artifacts/summary/server/**/*.cobertura.xml', 'artifacts/summary/plugin/coverage/*.xml') != '' }}
+        uses: danielpalme/ReportGenerator-GitHub-Action@v5
+        with:
+          reports: artifacts/summary/server/**/*.cobertura.xml;artifacts/summary/plugin/coverage/*.xml
+          targetdir: artifacts/summary/coverage
+          reporttypes: Html;MarkdownSummaryGithub
+          title: figma-mcp coverage
+
+      - name: Publish coverage summary
+        if: ${{ hashFiles('artifacts/summary/coverage/SummaryGithub.md') != '' }}
+        shell: pwsh
+        run: Get-Content -Raw -LiteralPath ./artifacts/summary/coverage/SummaryGithub.md >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage report
+        if: ${{ hashFiles('artifacts/summary/coverage/**') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: artifacts/summary/coverage
+          if-no-files-found: error
+          retention-days: 14

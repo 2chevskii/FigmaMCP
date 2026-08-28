@@ -16,23 +16,11 @@
 
 ## Validate before opening a pull request
 
-```powershell
-Push-Location .\packages\server
-dotnet format FigmaMcp.slnx --verify-no-changes --no-restore
-dotnet build FigmaMcp.slnx --configuration Release
-dotnet test --solution FigmaMcp.slnx --configuration Release
-Pop-Location
-
-npm ci --prefix .\packages\plugin
-npm run format:check --prefix .\packages\plugin
-npm run lint --prefix .\packages\plugin
-npm run typecheck --prefix .\packages\plugin
-npm test --prefix .\packages\plugin
-npm run build --prefix .\packages\plugin
-```
-
-Also run `git diff --check`. If the plugin, transport, or tool contract changed, validate the
-scenario in Figma Desktop; synthetic bridge tests do not replace that check.
+Run the root targets relevant to each changed component. The server targets are `:server:format` and
+`:server:test`; the plugin targets are `:plugin:format`, `:plugin:lint`, `:plugin:test`, and
+`:plugin:build`. Use `--dryrun` with any target to inspect its dependency graph. On Linux and macOS,
+use `bash ./build.sh` instead. Also run `git diff --check`. If the plugin, transport, or tool contract
+changed, validate the scenario in Figma Desktop; synthetic bridge tests do not replace that check.
 
 ## Pull request
 

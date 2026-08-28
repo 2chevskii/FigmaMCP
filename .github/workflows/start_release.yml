@@ -17,65 +17,21 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
-  server:
-    uses: ./.github/workflows/_server_ci.yml
+  ci:
+    name: CI
+    uses: ./.github/workflows/main.yml
 
-  plugin:
-    uses: ./.github/workflows/_plugin_ci.yml
-
-  prepare-release:
+  prepare_release:
     name: Test, build, and create draft release
-    needs: [server, plugin]
+    needs: ci
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Validate release tag and package version
-        id: version
-        shell: pwsh
-        run: |
-          $tag = '${{ github.ref_name }}'
-          if ($tag -notmatch '^v(?<version>.+)$') {
-            throw "Release tag '$tag' must start with v."
-          }
-
-          [xml]$project = Get-Content -Raw -Encoding UTF8 -LiteralPath 'packages/server/src/FigmaMCP/FigmaMCP.csproj'
-          $version = $Matches.version
-          if ($project.Project.PropertyGroup.Version -ne $version) {
-            throw "Project version '$($project.Project.PropertyGroup.Version)' must match release tag version '$version'."
-          }
-
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "package=FigmaMCP.$version.nupkg" >> $env:GITHUB_OUTPUT
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          global-json-file: packages/server/global.json
-
-      - name: Pack .NET tool
-        shell: pwsh
-        run: >-
-          dotnet pack packages/server/src/FigmaMCP/FigmaMCP.csproj
-          --configuration Release
-          --output "$env:RUNNER_TEMP/release"
-
-      - name: Publish Windows companion
-        shell: pwsh
-        run: >-
-          dotnet publish packages/server/src/FigmaMCP/FigmaMCP.csproj
-          --configuration Release
-          -p:PublishProfile=win-x64
-          --output "$env:RUNNER_TEMP/figma-mcp-server-win-x64"
-
-      - name: Archive Windows companion
-        shell: pwsh
-        run: >-
-          Compress-Archive
-          -Path "$env:RUNNER_TEMP/figma-mcp-server-win-x64/*"
-          -DestinationPath "$env:RUNNER_TEMP/release/figma-mcp-server-win-x64.zip"
+          global-json-file: global.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -84,49 +40,9 @@ jobs:
           cache: npm
           cache-dependency-path: packages/plugin/package-lock.json
 
-      - name: Install plugin dependencies
-        working-directory: packages/plugin
-        run: npm ci
-
-      - name: Build plugin
-        working-directory: packages/plugin
-        run: npm run build
-
-      - name: Archive plugin
-        shell: pwsh
-        run: >-
-          Compress-Archive
-          -Path "packages/plugin/dist/*"
-          -DestinationPath "$env:RUNNER_TEMP/release/figma-mcp-plugin.zip"
-
-      - name: Create or update draft GitHub release
-        shell: pwsh
+      - name: Prepare draft release
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $tag = '${{ github.ref_name }}'
-          $assets = @(
-            '${{ runner.temp }}/release/${{ steps.version.outputs.package }}',
-            '${{ runner.temp }}/release/figma-mcp-server-win-x64.zip',
-            '${{ runner.temp }}/release/figma-mcp-plugin.zip'
-          )
-
-          $isDraft = gh release view $tag --json isDraft --jq .isDraft 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            if ($isDraft -ne 'true') {
-              throw "Release '$tag' already exists and is not a draft."
-            }
-
-            gh release upload $tag $assets --clobber
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to update assets on draft release '$tag'."
-            }
-
-            exit
-          }
-
-          gh release create $tag $assets `
-            --draft `
-            --verify-tag `
-            --title "Figma MCP $tag" `
-            --generate-notes
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          bash ./build.sh --target :release:prepare
+          --configuration Release --release-tag "${{ github.ref_name }}"

@@ -8,8 +8,8 @@ documentation:
 ```mermaid
 flowchart TD
     root[Repository root] --> docs[docs]
+    root --> build[build/: Cake.Sdk root build]
     root --> packages[packages]
-    root --> scripts[scripts: local utilities, including MCP Inspector]
     packages --> plugin[plugin]
     plugin --> pluginSrc[src]
     plugin --> pluginTests[tests]
@@ -20,16 +20,41 @@ flowchart TD
     server --> solution[FigmaMcp.slnx]
 ```
 
-## Companion
+## Root build
 
-The server uses .NET 10 and central package management. Run these commands from the repository root:
+The root `build/build.cs` is a Cake.Sdk build. Use `build.ps1` on Windows and `bash build.sh` on Linux or macOS; both forward their arguments to Cake and run from the repository root.
+Use it instead of changing into package directories or reproducing CI commands:
+
+Named targets use a leading colon. Select a scenario with `--target`, for example `:server:build` or
+`:package:release`. Without `--target`, the default `:build` target builds both components.
 
 ```powershell
-cd packages/server
-dotnet restore FigmaMcp.slnx
-dotnet format FigmaMcp.slnx --verify-no-changes --no-restore
-dotnet build FigmaMcp.slnx --configuration Release
-dotnet test --solution FigmaMcp.slnx --configuration Release
+./build.ps1
+./build.ps1 --target :server:build --configuration Release
+./build.ps1 --target :plugin:test
+./build.ps1 --target :package:release --configuration Release
+./build.ps1 --target :server:inspector --configuration Debug
+```
+
+On Linux and macOS, replace `./build.ps1` with `bash ./build.sh`.
+
+Use `--dryrun` to display a target's dependency graph without executing it. Generated packages and
+archives are written beneath `artifacts/`.
+
+GitHub Actions delegates release scenarios to Cake as well. `:release:prepare` validates a
+`--release-tag`, creates the three release assets, and creates or updates the draft GitHub release.
+`:release:publish:nuget` and `:release:publish:github-packages` validate the tag, download the
+published release package, and publish it to the corresponding registry. These targets require the
+GitHub Actions token environment variables and should normally be run only by their workflows.
+
+## Companion
+
+The server uses .NET 10 and central package management. The root build exposes its usual targets:
+
+```powershell
+./build.ps1 --target :server:format
+./build.ps1 --target :server:build --configuration Release
+./build.ps1 --target :server:test --configuration Release
 ```
 
 During development, start the STDIO server through an MCP client or a local STDIO harness. Do not
@@ -42,16 +67,13 @@ changed.
 
 ## Bridge plugin
 
-The plugin uses the MessagePack bridge protocol and stores only the local bridge port:
+The plugin uses the MessagePack bridge protocol and stores only the local bridge port. Its root-build targets install its locked npm dependencies as needed:
 
 ```powershell
-cd packages/plugin
-npm install
-npm run format:check
-npm run lint
-npm run typecheck
-npm test
-npm run build
+./build.ps1 --target :plugin:format
+./build.ps1 --target :plugin:lint
+./build.ps1 --target :plugin:test
+./build.ps1 --target :plugin:build
 ```
 
 Import `packages/plugin/dist/manifest.json` as a development plugin in Figma Desktop. Keep the

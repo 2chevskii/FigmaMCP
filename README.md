@@ -24,34 +24,27 @@ describes Figma API capabilities and limits.
 ## Requirements
 
 - Windows x64.
-- .NET SDK 10, pinned in [packages/server/global.json](packages/server/global.json).
+- .NET SDK 10, pinned in [global.json](global.json).
 - Node.js and npm to build the Figma plugin and run MCP Inspector.
 - Figma Desktop for manual validation in a real document.
 
 ## Quick start
 
-1. Build the companion:
+1. Build the companion and Bridge plugin through the root build:
 
    ```powershell
-   dotnet build .\packages\server\FigmaMcp.slnx --configuration Release
+   ./build.ps1 --configuration Release
    ```
 
-2. Build the Bridge plugin:
-
-   ```powershell
-   npm ci --prefix .\packages\plugin
-   npm run build --prefix .\packages\plugin
-   ```
-
-3. In Figma Desktop, import `packages/plugin/dist/manifest.json` as a development plugin and open it
+2. In Figma Desktop, import `packages/plugin/dist/manifest.json` as a development plugin and open it
    in the desired document. Keep the Bridge port at `3846`, unless you configure a different port for
    the server with `--port <1-65535>` or the server reports a fallback port on `stderr` at startup.
 
-4. Start Inspector to verify an MCP session. The script builds the server and passes it to Inspector
+3. Start Inspector to verify an MCP session. The target builds the server and passes it to Inspector
    as a STDIO process:
 
    ```powershell
-   .\scripts\Start-McpInspector.ps1
+   ./build.ps1 --target :server:inspector --configuration Debug
    ```
 
 After the plugin connects, call `list_figma_connections` and pass the returned `connection_id` to
@@ -62,12 +55,10 @@ document-specific tools.
 To publish a standalone Windows binary:
 
 ```powershell
-dotnet publish .\packages\server\src\FigmaMCP\FigmaMCP.csproj `
-  --configuration Release `
-  -p:PublishProfile=win-x64
+./build.ps1 --target :server:publish --configuration Release
 ```
 
-Configure the generated `figma-mcp-server.exe` as the MCP server command in the client. Add
+The generated files are in `artifacts/server/win-x64`. Configure `figma-mcp-server.exe` as the MCP server command in the client. Add
 `--port <1-65535>` to select the local Bridge port when the default `3846` is unavailable. Do not
 redirect its `stdout`: it is reserved for MCP protocol traffic.
 
@@ -78,7 +69,6 @@ flowchart TD
     root[Repository] --> packages[packages]
     packages --> plugin[plugin: Figma Bridge plugin]
     packages --> server[server: .NET 10 MCP companion and tests]
-    root --> scripts[scripts: local utilities, including MCP Inspector]
     root --> docs[docs: architecture, development, and tool-contract documentation]
 ```
 
