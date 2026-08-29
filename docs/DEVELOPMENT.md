@@ -79,8 +79,8 @@ The server uses .NET 10 and central package management. The root build exposes i
 ```
 
 `:server:publish` selects the publish profile named after its runtime and writes the self-contained
-output under `artifacts/server/<runtime>/`. CI runs the Windows x64, Linux x64, and macOS ARM64
-profiles in parallel on their native GitHub-hosted runners and uploads one artifact per runtime.
+output under `artifacts/server/<runtime>/`. CI cross-publishes the Windows x64, Linux x64, and macOS
+ARM64 profiles in parallel on Ubuntu and uploads one artifact per runtime.
 
 `:server:publish-tests` creates the self-contained Microsoft.Testing.Platform executable used by CI
 under `artifacts/server-tests/<runtime>/`. The executable runs without a .NET installation or source

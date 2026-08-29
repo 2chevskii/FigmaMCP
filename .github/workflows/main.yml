@@ -28,24 +28,15 @@ jobs:
       - run: bash ./build.sh --target :server:format
 
   server_build:
-    name: Server build (${{ matrix.platform }})
+    name: Build MCP server
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: Windows x64
-            runner: windows-2025
-            runtime: win-x64
-            build_command: ./build.ps1
-          - platform: Linux x64
-            runner: ubuntu-24.04
-            runtime: linux-x64
-            build_command: bash ./build.sh
-          - platform: macOS ARM64
-            runner: macos-15
-            runtime: osx-arm64
-            build_command: bash ./build.sh
-    runs-on: ${{ matrix.runner }}
+        runtime:
+          - win-x64
+          - linux-x64
+          - osx-arm64
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,7 +48,7 @@ jobs:
           global-json-file: global.json
 
       - name: Build server
-        run: ${{ matrix.build_command }} --target :server:publish --configuration Release --runtime ${{ matrix.runtime }}
+        run: bash ./build.sh --target :server:publish --configuration Release --runtime ${{ matrix.runtime }}
 
       - name: Upload server artifact
         uses: actions/upload-artifact@v7
