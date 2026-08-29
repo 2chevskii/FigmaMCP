@@ -72,7 +72,20 @@ The server uses .NET 10 and central package management. The root build exposes i
 ./build.ps1 --target :server:format
 ./build.ps1 --target :server:build --configuration Release
 ./build.ps1 --target :server:test --configuration Release
+./build.ps1 --target :server:publish --configuration Release --runtime win-x64
+./build.ps1 --target :server:publish --configuration Release --runtime linux-x64
+./build.ps1 --target :server:publish --configuration Release --runtime osx-arm64
+./build.ps1 --target :server:publish-tests --configuration Release --runtime win-x64
 ```
+
+`:server:publish` selects the publish profile named after its runtime and writes the self-contained
+output under `artifacts/server/<runtime>/`. CI runs the Windows x64, Linux x64, and macOS ARM64
+profiles in parallel on their native GitHub-hosted runners and uploads one artifact per runtime.
+
+`:server:publish-tests` creates the self-contained Microsoft.Testing.Platform executable used by CI
+under `artifacts/server-tests/<runtime>/`. The executable runs without a .NET installation or source
+checkout. Its two portable PDB files remain beside it so the standalone Windows test run can produce
+line coverage. Local test runs continue to use `:server:test` and `dotnet test`.
 
 During development, start the STDIO server through an MCP client or a local STDIO harness. Do not
 write diagnostics to `stdout`: that stream belongs to the MCP protocol. The local bridge listens on

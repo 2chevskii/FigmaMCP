@@ -28,6 +28,9 @@ Task(BuildTargets.Server.Build)
     .IsDependentOn(BuildTargets.Server.Restore)
     .Does(() => ServerTasks.Build(Context, paths));
 Task(BuildTargets.Server.Test).Does(() => ServerTasks.Test(Context, paths));
+Task(BuildTargets.Server.PublishTests)
+    .IsDependentOn(BuildTargets.Server.Restore)
+    .Does(() => ServerTasks.PublishTests(Context, paths));
 Task(BuildTargets.Server.Inspector)
     .IsDependentOn(BuildTargets.Server.Build)
     .Does(() => ServerTasks.Inspect(Context, paths));

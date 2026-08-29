@@ -66,7 +66,7 @@ The MCP client starts the executable as a child process. A client configuration 
 {
   "mcpServers": {
     "figma": {
-      "command": "C:\\path\\to\\figma-mcp-server.exe"
+      "command": "C:\\path\\to\\FigmaMCP.exe"
     }
   }
 }

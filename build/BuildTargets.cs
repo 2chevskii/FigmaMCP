@@ -21,6 +21,7 @@ static class BuildTargets
         public const string Restore = ":server:restore";
         public const string Build = ":server:build";
         public const string Test = ":server:test";
+        public const string PublishTests = ":server:publish-tests";
         public const string Inspector = ":server:inspector";
         public const string Publish = ":server:publish";
     }

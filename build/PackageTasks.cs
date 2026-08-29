@@ -4,6 +4,8 @@ using System.IO.Compression;
 
 static class PackageTasks
 {
+    private const string ServerReleaseRuntime = "win-x64";
+
     public static void CreateNuGetPackage(ICakeContext context, BuildPaths paths)
     {
         context.EnsureDirectoryExists(paths.ReleaseDirectory);
@@ -20,7 +22,11 @@ static class PackageTasks
     }
 
     public static void CreateServerArchive(ICakeContext context, BuildPaths paths) =>
-        CreateArchive(context, paths.ServerPublishDirectory, paths.ServerReleaseArchive);
+        CreateArchive(
+            context,
+            paths.GetServerPublishDirectory(ServerReleaseRuntime),
+            paths.ServerReleaseArchive
+        );
 
     public static void CreatePluginArchive(ICakeContext context, BuildPaths paths) =>
         CreateArchive(context, paths.PluginDistributionDirectory, paths.PluginReleaseArchive);

@@ -12,13 +12,12 @@ source, manifest, UI, settings, or `figma-mcp-bridge.v2` protocol without explic
 
 Read these documents in order before architecture or server changes:
 
-1. [`.agents/SPEC.md`](.agents/SPEC.md) — normative specification and project scope.
-2. [`docs/index.md`](docs/index.md) — product overview and entry points.
-3. [`docs/architecture.md`](docs/architecture.md) — transports, bridge lifecycle, state, and security
+1. [`docs/index.md`](docs/index.md) — product overview and entry points.
+2. [`docs/architecture.md`](docs/architecture.md) — transports, bridge lifecycle, state, and security
    boundary.
-4. [`docs/development.md`](docs/development.md) — repository layout, build commands, and validation.
-5. [`docs/tools.md`](docs/tools.md) — MCP tool contract, schemas, `connection_id`, limits, and errors.
-6. [`docs/plugin-api-tool-coverage.md`](docs/plugin-api-tool-coverage.md) — Figma Plugin API coverage,
+3. [`docs/development.md`](docs/development.md) — repository layout, build commands, and validation.
+4. [`docs/tools.md`](docs/tools.md) — MCP tool contract, schemas, `connection_id`, limits, and errors.
+5. [`docs/plugin-api-tool-coverage.md`](docs/plugin-api-tool-coverage.md) — Figma Plugin API coverage,
    deferred capabilities, and manifest constraints.
 
 The public repository documents complement this technical documentation:
@@ -28,20 +27,8 @@ The public repository documents complement this technical documentation:
 - [`.github/SECURITY.md`](.github/SECURITY.md) — vulnerability reporting.
 
 When documents conflict, use this precedence:
-the latest explicit user instruction → `AGENTS.md` → the normative sections of `.agents/SPEC.md` →
-`docs/architecture.md` → other documents → existing code.
-
-## Local agent skills
-
-- [`.agents/skills/dotnet-csharpier/SKILL.md`](.agents/skills/dotnet-csharpier/SKILL.md) formats and
-  checks the C#/XML server project with the local CSharpier .NET tool. Use it for formatting work in
-  `packages/server/`.
-- [`.agents/skills/plugin-prettier/SKILL.md`](.agents/skills/plugin-prettier/SKILL.md) formats and
-  checks the Figma plugin through its local Prettier package. Use it for formatting work in
-  `packages/plugin/`.
-- [`.agents/skills/repository-commits/SKILL.md`](.agents/skills/repository-commits/SKILL.md) prepares
-  Conventional Commits and groups unrelated changes by purpose and timing. Use it only when the user
-  explicitly requests commits.
+the latest explicit user instruction → `AGENTS.md` → `docs/architecture.md` → other documents →
+existing code.
 
 ## Implementation invariants
 

@@ -10,6 +10,7 @@ static class ServerTasks
     private const string CsharpierTool = "csharpier";
     private const string InspectorPackage = "@modelcontextprotocol/inspector";
     private const string PublishRuntime = "win-x64";
+    private const string TestPublishRuntime = "win-x64";
 
     public static void Format(ICakeContext context, BuildPaths paths) =>
         context.DotNetTool(
@@ -27,7 +28,7 @@ static class ServerTasks
             paths.ServerSolution.ToString(),
             new DotNetRestoreSettings
             {
-                Runtime = PublishRuntime,
+                Runtime = context.Argument("runtime", PublishRuntime),
                 WorkingDirectory = paths.ServerDirectory,
             }
         );
@@ -44,6 +45,31 @@ static class ServerTasks
         );
 
     public static void Test(ICakeContext context, BuildPaths paths) => RunTests(context, paths);
+
+    public static void PublishTests(ICakeContext context, BuildPaths paths)
+    {
+        var runtime = context.Argument("runtime", TestPublishRuntime);
+        var outputDirectory = paths.GetServerTestPublishDirectory(runtime);
+        context.EnsureDirectoryExists(outputDirectory);
+        context.CleanDirectory(outputDirectory);
+        context.DotNetPublish(
+            paths.ServerTestProject.ToString(),
+            new DotNetPublishSettings
+            {
+                Configuration = context.Argument("configuration", "Release"),
+                NoRestore = true,
+                Runtime = runtime,
+                SelfContained = true,
+                OutputDirectory = outputDirectory,
+                WorkingDirectory = paths.ServerDirectory,
+                MSBuildSettings = new DotNetMSBuildSettings()
+                    .WithProperty("PublishSingleFile", "true")
+                    .WithProperty("IncludeAllContentForSelfExtract", "true")
+                    .WithProperty("DebugSymbols", "true")
+                    .WithProperty("DebugType", "portable"),
+            }
+        );
+    }
 
     private static void RunTests(ICakeContext context, BuildPaths paths)
     {
@@ -98,19 +124,19 @@ static class ServerTasks
 
     public static void Publish(ICakeContext context, BuildPaths paths)
     {
-        context.EnsureDirectoryExists(paths.ServerPublishDirectory);
+        var runtime = context.Argument("runtime", PublishRuntime);
+        var outputDirectory = paths.GetServerPublishDirectory(runtime);
+        context.EnsureDirectoryExists(outputDirectory);
+        context.CleanDirectory(outputDirectory);
         context.DotNetPublish(
             paths.ServerProject.ToString(),
             new DotNetPublishSettings
             {
                 Configuration = context.Argument("configuration", "Release"),
                 NoRestore = true,
-                OutputDirectory = paths.ServerPublishDirectory,
+                OutputDirectory = outputDirectory,
                 WorkingDirectory = paths.ServerDirectory,
-                MSBuildSettings = new DotNetMSBuildSettings().WithProperty(
-                    "PublishProfile",
-                    PublishRuntime
-                ),
+                MSBuildSettings = new DotNetMSBuildSettings().WithProperty("PublishProfile", runtime),
             }
         );
     }

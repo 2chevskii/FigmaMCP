@@ -13,10 +13,12 @@ record BuildPaths(
     DirectoryPath PluginCoverageDirectory,
     DirectoryPath ServerDirectory,
     DirectoryPath ServerProjectDirectory,
-    DirectoryPath ServerPublishDirectory,
+    DirectoryPath ServerPublishRootDirectory,
+    DirectoryPath ServerTestPublishRootDirectory,
     DirectoryPath ServerTestResultsDirectory,
     FilePath ServerSolution,
     FilePath ServerProject,
+    FilePath ServerTestProject,
     FilePath ServerTestReport,
     FilePath ServerCoverageReport,
     FilePath ServerReleaseArchive,
@@ -31,6 +33,9 @@ record BuildPaths(
         var pluginTestResultsDirectory = pluginDirectory.Combine("TestResults");
         var serverDirectory = rootDirectory.Combine("packages").Combine("server");
         var serverProjectDirectory = serverDirectory.Combine("src").Combine("FigmaMCP");
+        var serverTestProjectDirectory = serverDirectory
+            .Combine("tests")
+            .Combine("FigmaMCP.Tests.Unit");
         var serverTestResultsDirectory = serverDirectory.Combine("TestResults");
 
         return new BuildPaths(
@@ -46,10 +51,12 @@ record BuildPaths(
             pluginTestResultsDirectory.Combine("coverage"),
             serverDirectory,
             serverProjectDirectory,
-            artifactsDirectory.Combine("server").Combine("win-x64"),
+            artifactsDirectory.Combine("server"),
+            artifactsDirectory.Combine("server-tests"),
             serverTestResultsDirectory,
             serverDirectory.CombineWithFilePath("FigmaMcp.slnx"),
             serverProjectDirectory.CombineWithFilePath("FigmaMCP.csproj"),
+            serverTestProjectDirectory.CombineWithFilePath("FigmaMCP.Tests.Unit.csproj"),
             serverTestResultsDirectory.CombineWithFilePath("server.trx"),
             serverTestResultsDirectory.CombineWithFilePath("coverage.cobertura.xml"),
             releaseDirectory.CombineWithFilePath("figma-mcp-server-win-x64.zip"),
@@ -61,7 +68,13 @@ record BuildPaths(
         ServerProjectDirectory.Combine("bin").Combine(configuration).Combine("net10.0");
 
     public FilePath GetServerAssembly(string configuration) =>
-        GetServerBuildDirectory(configuration).CombineWithFilePath("figma-mcp-server.dll");
+        GetServerBuildDirectory(configuration).CombineWithFilePath("FigmaMCP.dll");
+
+    public DirectoryPath GetServerPublishDirectory(string runtime) =>
+        ServerPublishRootDirectory.Combine(runtime);
+
+    public DirectoryPath GetServerTestPublishDirectory(string runtime) =>
+        ServerTestPublishRootDirectory.Combine(runtime);
 
     public FilePath GetNuGetPackage(string version) =>
         ReleaseDirectory.CombineWithFilePath($"FigmaMCP.{version}.nupkg");

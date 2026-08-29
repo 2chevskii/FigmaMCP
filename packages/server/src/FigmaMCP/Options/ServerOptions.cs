@@ -17,7 +17,7 @@ public sealed record ServerOptions(int Port, bool IsPortExplicit)
 
         if (args.Length != 2 || !string.Equals(args[0], "--port", StringComparison.Ordinal))
         {
-            error = "Usage: figma-mcp-server.exe [--port <1-65535>]";
+            error = "Usage: FigmaMCP.exe [--port <1-65535>]";
             return false;
         }
 

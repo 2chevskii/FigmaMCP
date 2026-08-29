@@ -28,8 +28,24 @@ jobs:
       - run: bash ./build.sh --target :server:format
 
   server_build:
-    name: Server build
-    runs-on: ubuntu-24.04
+    name: Server build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows x64
+            runner: windows-2025
+            runtime: win-x64
+            build_command: ./build.ps1
+          - platform: Linux x64
+            runner: ubuntu-24.04
+            runtime: linux-x64
+            build_command: bash ./build.sh
+          - platform: macOS ARM64
+            runner: macos-15
+            runtime: osx-arm64
+            build_command: bash ./build.sh
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -41,21 +57,18 @@ jobs:
           global-json-file: global.json
 
       - name: Build server
-        run: bash ./build.sh --target :server:build --configuration Release
+        run: ${{ matrix.build_command }} --target :server:publish --configuration Release --runtime ${{ matrix.runtime }}
 
-      - name: Upload server build artifact
+      - name: Upload server artifact
         uses: actions/upload-artifact@v7
         with:
-          name: figma-mcp-server-build
-          path: |
-            packages/server/**/bin
-            packages/server/**/obj
+          name: figma-mcp-server-${{ matrix.runtime }}
+          path: artifacts/server/${{ matrix.runtime }}
           if-no-files-found: error
 
-  server_test:
-    name: Server test
-    needs: server_build
-    runs-on: ubuntu-24.04
+  server_test_build:
+    name: Server test build
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v7
         with:
@@ -66,41 +79,60 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Download server build artifact
+      - name: Publish server tests
+        run: ./build.ps1 --target :server:publish-tests --configuration Release --runtime win-x64
+
+      - name: Upload server test executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: figma-mcp-server-tests-win-x64
+          path: |
+            artifacts/server-tests/win-x64/FigmaMCP.Tests.Unit.exe
+            artifacts/server-tests/win-x64/FigmaMCP.Tests.Unit.pdb
+            artifacts/server-tests/win-x64/FigmaMCP.pdb
+          if-no-files-found: error
+
+  server_test:
+    name: Server test
+    needs: server_test_build
+    runs-on: windows-2025
+    steps:
+      - name: Download server test executable
         uses: actions/download-artifact@v8
         with:
-          name: figma-mcp-server-build
-          path: packages/server
+          name: figma-mcp-server-tests-win-x64
+          path: artifacts/server-tests/win-x64
 
       - name: Test server
-        run: bash ./build.sh --target :server:test --configuration Release --no-build
+        working-directory: artifacts/server-tests/win-x64
+        run: |
+          $resultsDirectory = Join-Path $env:GITHUB_WORKSPACE "artifacts/server-test-results"
+          New-Item -ItemType Directory -Force -Path $resultsDirectory | Out-Null
+          & ./FigmaMCP.Tests.Unit.exe `
+            --results-directory $resultsDirectory `
+            --report-trx `
+            --report-trx-filename server.trx `
+            --coverage `
+            --coverage-output-format cobertura `
+            --coverage-output coverage.cobertura.xml
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) {
+            exit $testExitCode
+          }
+
+          [xml] $coverage = Get-Content -Raw -LiteralPath (Join-Path $resultsDirectory "coverage.cobertura.xml")
+          if ($null -eq $coverage.coverage.packages.package) {
+            throw "The server coverage report does not contain any packages."
+          }
 
       - name: Upload server test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: server-test-results
-          path: packages/server/TestResults
+          path: artifacts/server-test-results
           if-no-files-found: warn
           retention-days: 14
-
-  server_publish:
-    name: Publish server artifact
-    needs: server_build
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Download server build artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: figma-mcp-server-build
-          path: packages/server
-
-      - name: Upload server artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: figma-mcp-server
-          path: packages/server/src/FigmaMCP/bin/Release
-          if-no-files-found: error
 
   plugin_format_check:
     name: Plugin format check
@@ -218,8 +250,8 @@ jobs:
     needs:
       - server_format_check
       - server_build
+      - server_test_build
       - server_test
-      - server_publish
       - plugin_format_check
       - plugin_lint
       - plugin_test

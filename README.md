@@ -59,7 +59,7 @@ To publish a standalone Windows binary:
 ./build.ps1 --target :server:publish --configuration Release
 ```
 
-The generated files are in `artifacts/server/win-x64`. Configure `figma-mcp-server.exe` as the MCP server command in the client. Add
+The generated files are in `artifacts/server/win-x64`. Configure `FigmaMCP.exe` as the MCP server command in the client. Add
 `--port <1-65535>` to select the local Bridge port when the default `3846` is unavailable. Do not
 redirect its `stdout`: it is reserved for MCP protocol traffic.
 
