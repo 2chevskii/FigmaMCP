@@ -75,7 +75,7 @@ The server uses .NET 10 and central package management. The root build exposes i
 ./build.ps1 --target :server:publish --configuration Release --runtime win-x64
 ./build.ps1 --target :server:publish --configuration Release --runtime linux-x64
 ./build.ps1 --target :server:publish --configuration Release --runtime osx-arm64
-./build.ps1 --target :server:publish-tests --configuration Release --runtime win-x64
+./build.ps1 --target :server:publish-tests --configuration Release --runtime linux-x64
 ```
 
 `:server:publish` selects the publish profile named after its runtime and writes the self-contained
@@ -84,9 +84,10 @@ ARM64 profiles in parallel on Ubuntu and uploads one artifact per runtime.
 
 `:server:publish-tests` creates the self-contained Microsoft.Testing.Platform executable used by CI
 under `artifacts/server-tests/<runtime>/`. The executable runs without a .NET installation or source
-checkout. Its two portable PDB files remain beside it so the standalone Windows test run can produce
-line coverage. CI configures the coverage collector to resolve those external symbols and retain
-assemblies whose source checkout is intentionally absent. Local test runs continue to use
+checkout. Its two portable PDB files remain beside it so the standalone Linux test run can produce
+line coverage. CI builds and runs the test artifact on Ubuntu, restores the executable permission
+removed by artifact transfer, and configures the coverage collector to resolve those external symbols
+and retain assemblies whose source checkout is intentionally absent. Local test runs continue to use
 `:server:test` and `dotnet test`.
 
 During development, start the STDIO server through an MCP client or a local STDIO harness. Do not

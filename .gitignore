@@ -1,5 +1,6 @@
 bin/
 obj/
+artifacts/
 packages/plugin/node_modules/
 packages/plugin/dist/
 web/*/node_modules/

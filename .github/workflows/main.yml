@@ -59,7 +59,7 @@ jobs:
 
   server_test_build:
     name: Build MCP server unit tests
-    runs-on: windows-2025
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -71,31 +71,32 @@ jobs:
           global-json-file: global.json
 
       - name: Publish server tests
-        run: ./build.ps1 --target :server:publish-tests --configuration Release --runtime win-x64
+        run: bash ./build.sh --target :server:publish-tests --configuration Release --runtime linux-x64
 
       - name: Upload server test executable
         uses: actions/upload-artifact@v7
         with:
-          name: figma-mcp-server-tests-win-x64
+          name: figma-mcp-server-tests-linux-x64
           path: |
-            artifacts/server-tests/win-x64/FigmaMCP.Tests.Unit.exe
-            artifacts/server-tests/win-x64/FigmaMCP.Tests.Unit.pdb
-            artifacts/server-tests/win-x64/FigmaMCP.pdb
+            artifacts/server-tests/linux-x64/FigmaMCP.Tests.Unit
+            artifacts/server-tests/linux-x64/FigmaMCP.Tests.Unit.pdb
+            artifacts/server-tests/linux-x64/FigmaMCP.pdb
           if-no-files-found: error
 
   server_test:
     name: Run MCP server unit tests
     needs: server_test_build
-    runs-on: windows-2025
+    runs-on: ubuntu-24.04
     steps:
       - name: Download server test executable
         uses: actions/download-artifact@v8
         with:
-          name: figma-mcp-server-tests-win-x64
-          path: artifacts/server-tests/win-x64
+          name: figma-mcp-server-tests-linux-x64
+          path: artifacts/server-tests/linux-x64
 
       - name: Test server
-        working-directory: artifacts/server-tests/win-x64
+        working-directory: artifacts/server-tests/linux-x64
+        shell: pwsh
         run: |
           $resultsDirectory = Join-Path $env:GITHUB_WORKSPACE "artifacts/server-test-results"
           $coverageSettings = Join-Path $env:RUNNER_TEMP "server-coverage.settings"
@@ -113,7 +114,8 @@ jobs:
           "@
           New-Item -ItemType Directory -Force -Path $resultsDirectory | Out-Null
           [System.IO.File]::WriteAllText($coverageSettings, $coverageConfiguration)
-          & ./FigmaMCP.Tests.Unit.exe `
+          chmod +x ./FigmaMCP.Tests.Unit
+          & ./FigmaMCP.Tests.Unit `
             --results-directory $resultsDirectory `
             --report-trx `
             --report-trx-filename server.trx `
