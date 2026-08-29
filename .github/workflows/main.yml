@@ -14,7 +14,7 @@ env:
 
 jobs:
   server_format_check:
-    name: Server format check
+    name: Check MCP server formatting
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -58,7 +58,7 @@ jobs:
           if-no-files-found: error
 
   server_test_build:
-    name: Server test build
+    name: Build MCP server unit tests
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v7
@@ -84,7 +84,7 @@ jobs:
           if-no-files-found: error
 
   server_test:
-    name: Server test
+    name: Run MCP server unit tests
     needs: server_test_build
     runs-on: windows-2025
     steps:
@@ -126,7 +126,7 @@ jobs:
           retention-days: 14
 
   plugin_format_check:
-    name: Plugin format check
+    name: Check Figma plugin formatting
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -149,7 +149,7 @@ jobs:
         run: bash ./build.sh --target :plugin:format
 
   plugin_lint:
-    name: Plugin lint
+    name: Lint Figma plugin
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -172,7 +172,7 @@ jobs:
         run: bash ./build.sh --target :plugin:lint
 
   plugin_test:
-    name: Plugin test
+    name: Run Figma plugin unit tests
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -206,7 +206,7 @@ jobs:
           retention-days: 14
 
   plugin_build:
-    name: Plugin build
+    name: Build Figma plugin
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -236,7 +236,7 @@ jobs:
           if-no-files-found: error
 
   summary:
-    name: Publish reports
+    name: Publish test reports
     if: ${{ always() && !cancelled() }}
     needs:
       - server_format_check
