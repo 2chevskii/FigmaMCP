@@ -5,8 +5,6 @@ description: Figma MCP tool contracts, inputs, limits, and errors.
 
 # Figma Design MCP tool reference
 
-Connector version: 0.2.0
-
 Every document-specific call requires the lowercase canonical `connection_id` returned by
 `list_figma_connections`. Call `get_figma_capabilities` after choosing a connection because beta and
 permission-gated APIs can vary by Figma runtime, account, and file.

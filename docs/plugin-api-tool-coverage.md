@@ -34,8 +34,9 @@ tool list.
 
 ## Implementation status
 
-The Figma Design portion of this catalog is implemented in connector version 0.2.0. The complete
-registered catalog and input conventions are documented in [MCP tool reference](./tools).
+The Figma Design portion of this catalog is implemented by the connector described by this
+documentation. The complete registered catalog and input conventions are documented in
+[MCP tool reference](./TOOLS).
 
 The implementation intentionally excludes the editor-specific tools in section 11, the
 invocation-driven/product-management APIs in section 12, private/partner-only APIs, and unrestricted

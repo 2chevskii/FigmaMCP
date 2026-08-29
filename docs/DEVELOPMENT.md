@@ -50,19 +50,58 @@ The docs targets install the locked npm dependencies from `docs/package-lock.jso
 validates the VitePress configuration, and `:docs:build` type-checks and generates the static site in
 `docs/.vitepress/dist/`.
 
-Pushes to `master` run `.github/workflows/docs.yml`. The workflow builds the website through
-`:docs:build`, uploads `docs/.vitepress/dist/` as the GitHub Pages artifact, and deploys it to the
-`github-pages` environment. It supplies the repository-specific Pages base path through `DOCS_BASE`;
-local builds default to `/`.
+Publishing a GitHub Release runs `.github/workflows/docs.yml`. The workflow checks out the exact
+release tag, builds the website through `:docs:build`, uploads `docs/.vitepress/dist/` as the GitHub
+Pages artifact, and deploys it to the `github-pages` environment. It supplies the repository-specific
+Pages base path through `DOCS_BASE` and the published tag through `DOCS_VERSION`. The version appears
+in the site navigation and footer. Local builds default to `/` and identify themselves as
+`development` documentation.
 
 Use `--dryrun` to display a target's dependency graph without executing it. Generated packages and
 archives are written beneath `artifacts/`.
 
-GitHub Actions delegates release scenarios to Cake as well. `:release:prepare` validates a
-`--release-tag`, creates the three release assets, and creates or updates the draft GitHub release.
-`:release:publish:nuget` and `:release:publish:github-packages` validate the tag, download the
-published release package, and publish it to the corresponding registry. These targets require the
-GitHub Actions token environment variables and should normally be run only by their workflows.
+## Versioning and releases
+
+The repository follows trunk-based development. `master` is the only long-lived branch; work from a
+short-lived branch with any useful name and squash the pull request into one Conventional Commit.
+Pull requests from forks follow the same flow. Pull request titles are not versioning inputs.
+
+```mermaid
+flowchart LR
+    branch[short-lived branch or fork] -->|pull request| checks[CI: commits, tests, builds]
+    checks -->|squash merge| master[master]
+    master -->|manual Start release| version[validate commits and calculate version]
+    version --> tag[annotated vX.Y.Z tag]
+    tag --> draft[draft GitHub release with exact assets]
+    draft -->|maintainer publishes draft| published[published GitHub Release]
+    published --> registries[NuGet.org and GitHub Packages]
+    published --> pages[versioned GitHub Pages documentation]
+```
+
+GitVersion calculates one product version from the Git history and `GitVersion.yml`. Cake passes it
+to .NET assembly/package metadata and to the plugin's Rolldown build, so local and CI artifacts use
+the same versioning rules. The source manifests store the stable baseline `1.0.0`; ordinary branch
+builds add a Git-derived prerelease label and informational SHA. Version changes are determined by
+commits since the latest release tag:
+
+| Commit                                                                        | Version change |
+| ----------------------------------------------------------------------------- | -------------- |
+| `feat:`                                                                       | minor          |
+| `fix:` or `perf:`                                                             | patch          |
+| Any conventional type with `!`, or a `BREAKING CHANGE` footer                 | major          |
+| `build:`, `chore:`, `ci:`, `docs:`, `refactor:`, `revert:`, `style:`, `test:` | none           |
+
+Install the local `commit-msg` hook with `:commits:hook:install`. The hook and the CI
+`:commits:check` target both use the repository-pinned commitlint configuration.
+
+GitHub Actions delegates release scenarios to Cake. Run the **Start release** workflow manually on
+`master`; `:release:prepare` verifies that the checkout is the exact clean `origin/master` commit,
+validates its release commit range, computes the next version, creates and pushes the annotated tag,
+builds the three release assets, and creates or updates a draft GitHub release. Publishing that draft
+starts **Finish release**. Its `:release:publish:nuget` and `:release:publish:github-packages` targets
+download the exact package attached to the published release and send it to the corresponding
+registry. Release targets require GitHub Actions credentials and should normally run only in their
+workflows.
 
 ## Companion
 

@@ -1,6 +1,6 @@
 {
   "name": "figma-mcp-connector",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Figma MCP connector",
   "main": "dist/plugin.js",
   "scripts": {

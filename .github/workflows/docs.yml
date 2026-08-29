@@ -1,9 +1,8 @@
 name: Documentation
 
 on:
-  push:
-    branches:
-      - master
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -22,6 +21,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.release.tag_name }}
           fetch-depth: 1
 
       - name: Set up Node.js
@@ -43,6 +43,7 @@ jobs:
       - name: Build documentation
         env:
           DOCS_BASE: ${{ steps.pages.outputs.base_path }}/
+          DOCS_VERSION: ${{ github.event.release.tag_name }}
         run: bash ./build.sh --target :docs:build
 
       - name: Upload GitHub Pages artifact

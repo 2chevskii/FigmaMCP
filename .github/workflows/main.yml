@@ -13,6 +13,50 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
+  commit_messages:
+    name: Check commit messages
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Check Conventional Commits
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $to = $env:HEAD_SHA
+          $from = $env:BASE_SHA
+
+          if ($env:EVENT_NAME -eq "push") {
+            $from = $env:BEFORE_SHA
+            if ([string]::IsNullOrWhiteSpace($from) -or $from -match "^0+$") {
+              $from = (git rev-list --max-parents=0 HEAD | Select-Object -First 1)
+            }
+          }
+
+          if ([string]::IsNullOrWhiteSpace($from)) {
+            bash ./build.sh --target :commits:check --to $to
+          } else {
+            bash ./build.sh --target :commits:check --from $from --to $to
+          }
+
   server_format_check:
     name: Check MCP server formatting
     runs-on: ubuntu-24.04
@@ -40,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
@@ -63,7 +107,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
@@ -228,7 +272,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -256,6 +300,7 @@ jobs:
     name: Publish test reports
     if: ${{ always() && !cancelled() }}
     needs:
+      - commit_messages
       - server_format_check
       - server_build
       - server_test_build

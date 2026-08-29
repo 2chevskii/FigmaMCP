@@ -20,6 +20,19 @@ static class PluginTasks
         context.NpmRunScript("test:coverage", settings => settings.FromPath(paths.PluginDirectory));
     }
 
-    public static void Build(ICakeContext context, BuildPaths paths) =>
-        context.NpmRunScript("build", settings => settings.FromPath(paths.PluginDirectory));
+    public static void Build(ICakeContext context, BuildPaths paths)
+    {
+        var version = VersionTasks.Calculate(context, paths);
+        context.NpmRunScript(
+            "build",
+            settings =>
+            {
+                settings.FromPath(paths.PluginDirectory);
+                settings.EnvironmentVariables = new Dictionary<string, string>
+                {
+                    ["FIGMA_MCP_VERSION"] = version.SemVer,
+                };
+            }
+        );
+    }
 }

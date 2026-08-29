@@ -8,10 +8,10 @@ hero:
   actions:
     - theme: brand
       text: Get started
-      link: /development
+      link: /DEVELOPMENT
     - theme: alt
       text: Tool reference
-      link: /tools
+      link: /TOOLS
 
 features:
   - title: Local by design
@@ -80,7 +80,7 @@ bridge is loopback-only and must not bind to an external interface.
 
 ## Documentation map
 
-- [Architecture](/architecture) explains transports, lifecycle, state, and security boundaries.
-- [Development](/development) describes the repository layout, build commands, and local checks.
-- [Tool reference](/tools) defines the MCP tool contract.
+- [Architecture](/ARCHITECTURE) explains transports, lifecycle, state, and security boundaries.
+- [Development](/DEVELOPMENT) describes the repository layout, build commands, and local checks.
+- [Tool reference](/TOOLS) defines the MCP tool contract.
 - [Plugin API coverage](/plugin-api-tool-coverage) records supported and deferred Figma API areas.

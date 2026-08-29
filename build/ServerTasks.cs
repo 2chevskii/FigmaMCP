@@ -19,7 +19,9 @@ static class ServerTasks
             {
                 WorkingDirectory = paths.ServerDirectory,
                 ArgumentCustomization = arguments =>
-                    arguments.Append(context.Argument("fix", false) ? "format" : "check").Append("."),
+                    arguments
+                        .Append(context.Argument("fix", false) ? "format" : "check")
+                        .Append("."),
             }
         );
 
@@ -41,6 +43,9 @@ static class ServerTasks
                 Configuration = context.Argument("configuration", "Release"),
                 NoRestore = true,
                 WorkingDirectory = paths.ServerDirectory,
+                MSBuildSettings = new DotNetMSBuildSettings().AddTo(
+                    VersionTasks.Calculate(context, paths)
+                ),
             }
         );
 
@@ -66,7 +71,8 @@ static class ServerTasks
                     .WithProperty("PublishSingleFile", "true")
                     .WithProperty("IncludeAllContentForSelfExtract", "true")
                     .WithProperty("DebugSymbols", "true")
-                    .WithProperty("DebugType", "portable"),
+                    .WithProperty("DebugType", "portable")
+                    .AddTo(VersionTasks.Calculate(context, paths)),
             }
         );
     }
@@ -83,6 +89,9 @@ static class ServerTasks
                 NoBuild = context.Argument("no-build", false),
                 WorkingDirectory = paths.ServerDirectory,
                 ResultsDirectory = paths.ServerTestResultsDirectory,
+                MSBuildSettings = new DotNetMSBuildSettings().AddTo(
+                    VersionTasks.Calculate(context, paths)
+                ),
                 ArgumentCustomization = arguments =>
                     arguments
                         .Append("--report-trx")
@@ -136,7 +145,9 @@ static class ServerTasks
                 NoRestore = true,
                 OutputDirectory = outputDirectory,
                 WorkingDirectory = paths.ServerDirectory,
-                MSBuildSettings = new DotNetMSBuildSettings().WithProperty("PublishProfile", runtime),
+                MSBuildSettings = new DotNetMSBuildSettings()
+                    .WithProperty("PublishProfile", runtime)
+                    .AddTo(VersionTasks.Calculate(context, paths)),
             }
         );
     }

@@ -1,20 +1,88 @@
+using System.Text.RegularExpressions;
 using Cake.Common.Tools.DotNet.NuGet.Push;
 using Cake.Core;
+using Cake.Core.IO;
 using Octokit;
-using System.Xml.Linq;
 
-record ReleaseMetadata(string Tag, string Version, FilePath Package);
+record ReleaseMetadata(string Tag, string Version, string Sha, FilePath Package);
 
 static class ReleaseTasks
 {
     private const string NuGetOrgSource = "https://api.nuget.org/v3/index.json";
     private const string ReleaseAssetMediaType = "application/octet-stream";
+    private static readonly Regex ReleaseTagPattern = new(
+        "^v(?<version>(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*))$",
+        RegexOptions.CultureInvariant
+    );
+    private static ReleaseMetadata? stagedRelease;
 
-    public static void Validate(ICakeContext context, BuildPaths paths) => GetMetadata(context, paths);
+    public static void Stage(ICakeContext context, BuildPaths paths)
+    {
+        EnsureReleaseSource(context, paths);
+        var sha = RunGit(context, paths, "rev-parse", "HEAD");
+        var currentTags = RunGit(context, paths, "tag", "--points-at", "HEAD", "--list", "v*")
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Where(tag => ReleaseTagPattern.IsMatch(tag))
+            .ToArray();
+
+        if (currentTags.Length > 1)
+        {
+            throw new CakeException(
+                $"Commit '{sha}' has multiple release tags: {string.Join(", ", currentTags)}."
+            );
+        }
+
+        string tag;
+        string version;
+        if (currentTags.Length == 1)
+        {
+            tag = currentTags[0];
+            version = ParseReleaseTag(tag);
+        }
+        else
+        {
+            var previousTag = FindLatestReleaseTag(context, paths);
+            CommitTasks.CheckRange(context, paths, previousTag, "HEAD");
+
+            var calculated = VersionTasks.Calculate(context, paths);
+            version = calculated.MajorMinorPatch;
+            if (previousTag is not null && ParseReleaseTag(previousTag) == version)
+            {
+                throw new CakeException(
+                    $"No releasable feat, fix, perf, or breaking commits exist after '{previousTag}'."
+                );
+            }
+
+            tag = $"v{version}";
+            if (GitReferenceExists(context, paths, $"refs/tags/{tag}"))
+            {
+                var taggedSha = RunGit(context, paths, "rev-parse", $"refs/tags/{tag}^{{}}");
+                throw new CakeException(
+                    $"Release tag '{tag}' already points to '{taggedSha}', not current commit '{sha}'."
+                );
+            }
+
+            RunGit(context, paths, "tag", "--annotate", tag, "--message", $"Figma MCP {tag}");
+        }
+
+        var stableVersion = VersionTasks.UseStableVersion(version, sha);
+        stagedRelease = new ReleaseMetadata(
+            tag,
+            stableVersion.SemVer,
+            sha,
+            paths.GetNuGetPackage(stableVersion.SemVer)
+        );
+        context.Information("Staged release {0} for commit {1}.", tag, sha);
+    }
+
+    public static void Validate(ICakeContext context, BuildPaths paths) =>
+        GetPublishedReleaseMetadata(context, paths);
 
     public static async Task CreateOrUpdateDraft(ICakeContext context, BuildPaths paths)
     {
-        var metadata = GetMetadata(context, paths);
+        var metadata =
+            stagedRelease
+            ?? throw new CakeException("The release must be staged before creating its draft.");
         var assets = new[]
         {
             metadata.Package,
@@ -30,6 +98,8 @@ static class ReleaseTasks
             }
         }
 
+        PushReleaseTag(context, paths, metadata);
+
         var client = CreateGitHubClient(context);
         var repository = GetRepository(context);
         var release = await TryGetRelease(client, repository, metadata.Tag);
@@ -43,6 +113,7 @@ static class ReleaseTasks
                     Draft = true,
                     GenerateReleaseNotes = true,
                     Name = $"Figma MCP {metadata.Tag}",
+                    TargetCommitish = metadata.Sha,
                 }
             );
         }
@@ -59,7 +130,9 @@ static class ReleaseTasks
         foreach (var asset in assets)
         {
             var fileName = System.IO.Path.GetFileName(asset.FullPath);
-            foreach (var existingAsset in existingAssets.Where(existing => existing.Name == fileName))
+            foreach (
+                var existingAsset in existingAssets.Where(existing => existing.Name == fileName)
+            )
             {
                 await client.Repository.Release.DeleteAsset(
                     repository.Owner,
@@ -83,7 +156,7 @@ static class ReleaseTasks
 
     public static async Task DownloadNuGetPackage(ICakeContext context, BuildPaths paths)
     {
-        var metadata = GetMetadata(context, paths);
+        var metadata = GetPublishedReleaseMetadata(context, paths);
         context.EnsureDirectoryExists(paths.ReleaseDownloadDirectory);
         var package = paths.GetDownloadedNuGetPackage(metadata.Version);
         if (context.FileExists(package))
@@ -94,23 +167,26 @@ static class ReleaseTasks
         var client = CreateGitHubClient(context);
         var repository = GetRepository(context);
         var release = await GetRelease(client, repository, metadata.Tag);
-        var asset = (await client.Repository.Release.GetAllAssets(
-            repository.Owner,
-            repository.Name,
-            release.Id
-        )).SingleOrDefault(candidate => candidate.Name == System.IO.Path.GetFileName(metadata.Package.FullPath));
+        var asset = (
+            await client.Repository.Release.GetAllAssets(
+                repository.Owner,
+                repository.Name,
+                release.Id
+            )
+        ).SingleOrDefault(candidate =>
+            candidate.Name == System.IO.Path.GetFileName(metadata.Package.FullPath)
+        );
         if (asset is null)
         {
-            throw new CakeException($"Release package '{metadata.Package.GetFilename()}' was not found.");
+            throw new CakeException(
+                $"Release package '{metadata.Package.GetFilename()}' was not found."
+            );
         }
 
         var connection = new ApiConnection(client.Connection);
         await using var source = await connection.GetRawStream(
             new Uri(asset.Url),
-            new Dictionary<string, string>
-            {
-                ["Accept"] = ReleaseAssetMediaType,
-            }
+            new Dictionary<string, string> { ["Accept"] = ReleaseAssetMediaType }
         );
         await using var destination = System.IO.File.Create(package.FullPath);
         await source.CopyToAsync(destination);
@@ -118,7 +194,7 @@ static class ReleaseTasks
 
     public static void PublishToNuGet(ICakeContext context, BuildPaths paths)
     {
-        var metadata = GetMetadata(context, paths);
+        var metadata = GetPublishedReleaseMetadata(context, paths);
         context.DotNetNuGetPush(
             paths.GetDownloadedNuGetPackage(metadata.Version),
             new DotNetNuGetPushSettings
@@ -132,7 +208,7 @@ static class ReleaseTasks
 
     public static void PublishToGitHubPackages(ICakeContext context, BuildPaths paths)
     {
-        var metadata = GetMetadata(context, paths);
+        var metadata = GetPublishedReleaseMetadata(context, paths);
         var repository = GetRepository(context);
         context.DotNetNuGetPush(
             paths.GetDownloadedNuGetPackage(metadata.Version),
@@ -145,6 +221,146 @@ static class ReleaseTasks
         );
     }
 
+    private static void EnsureReleaseSource(ICakeContext context, BuildPaths paths)
+    {
+        var githubRef = context.EnvironmentVariable<string>("GITHUB_REF", string.Empty);
+        if (!string.IsNullOrWhiteSpace(githubRef) && githubRef != "refs/heads/master")
+        {
+            throw new CakeException(
+                $"Releases must run from 'refs/heads/master', but workflow ref is '{githubRef}'."
+            );
+        }
+
+        var status = RunGit(context, paths, "status", "--porcelain", "--untracked-files=no");
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            throw new CakeException("The release source contains tracked working-tree changes.");
+        }
+
+        if (!GitReferenceExists(context, paths, "refs/remotes/origin/master"))
+        {
+            return;
+        }
+
+        var head = RunGit(context, paths, "rev-parse", "HEAD");
+        var remoteMaster = RunGit(context, paths, "rev-parse", "refs/remotes/origin/master");
+        if (head != remoteMaster)
+        {
+            throw new CakeException(
+                $"Release commit '{head}' is not the current origin/master commit '{remoteMaster}'."
+            );
+        }
+    }
+
+    private static string? FindLatestReleaseTag(ICakeContext context, BuildPaths paths)
+    {
+        var tags = RunGit(
+                context,
+                paths,
+                "tag",
+                "--merged",
+                "HEAD",
+                "--list",
+                "v*",
+                "--sort=-version:refname"
+            )
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        return tags.FirstOrDefault(tag => ReleaseTagPattern.IsMatch(tag));
+    }
+
+    private static ReleaseMetadata GetPublishedReleaseMetadata(
+        ICakeContext context,
+        BuildPaths paths
+    )
+    {
+        var tag = context.Argument(
+            "release-tag",
+            context.EnvironmentVariable<string>("GITHUB_REF_NAME", string.Empty)
+        );
+        var version = ParseReleaseTag(tag);
+        var sha = RunGit(context, paths, "rev-parse", "HEAD");
+        if (GitReferenceExists(context, paths, $"refs/tags/{tag}"))
+        {
+            var taggedSha = RunGit(context, paths, "rev-parse", $"refs/tags/{tag}^{{}}");
+            if (taggedSha != sha)
+            {
+                throw new CakeException(
+                    $"Release tag '{tag}' points to '{taggedSha}', not checked-out commit '{sha}'."
+                );
+            }
+        }
+
+        return new ReleaseMetadata(tag, version, sha, paths.GetNuGetPackage(version));
+    }
+
+    private static void PushReleaseTag(
+        ICakeContext context,
+        BuildPaths paths,
+        ReleaseMetadata metadata
+    )
+    {
+        RunGit(context, paths, "push", "origin", $"refs/tags/{metadata.Tag}");
+        context.Information("Published release tag {0} at {1}.", metadata.Tag, metadata.Sha);
+    }
+
+    private static bool GitReferenceExists(
+        ICakeContext context,
+        BuildPaths paths,
+        string reference
+    ) => RunGit(context, paths, true, "show-ref", "--verify", "--quiet", reference).ExitCode == 0;
+
+    private static string ParseReleaseTag(string tag)
+    {
+        var match = ReleaseTagPattern.Match(tag ?? string.Empty);
+        if (!match.Success)
+        {
+            throw new CakeException(
+                $"Release tag '{tag}' must use the stable SemVer format 'vMAJOR.MINOR.PATCH'."
+            );
+        }
+
+        return match.Groups["version"].Value;
+    }
+
+    private static string RunGit(ICakeContext context, BuildPaths paths, params string[] arguments)
+    {
+        var result = RunGit(context, paths, false, arguments);
+        return result.Output;
+    }
+
+    private static GitResult RunGit(
+        ICakeContext context,
+        BuildPaths paths,
+        bool allowFailure,
+        params string[] arguments
+    )
+    {
+        var builder = new ProcessArgumentBuilder();
+        foreach (var argument in arguments)
+        {
+            builder.AppendQuoted(argument);
+        }
+
+        var exitCode = context.StartProcess(
+            "git",
+            new ProcessSettings
+            {
+                Arguments = builder,
+                RedirectStandardOutput = true,
+                WorkingDirectory = paths.RootDirectory,
+            },
+            out var output
+        );
+        if (exitCode != 0 && !allowFailure)
+        {
+            throw new CakeException(
+                $"Git command failed with exit code {exitCode}: git {string.Join(' ', arguments)}"
+            );
+        }
+
+        return new GitResult(exitCode, string.Join(Environment.NewLine, output).Trim());
+    }
+
     private static GitHubClient CreateGitHubClient(ICakeContext context) =>
         new(new ProductHeaderValue("figma-mcp"))
         {
@@ -155,8 +371,7 @@ static class ReleaseTasks
         GitHubClient client,
         GitHubRepository repository,
         string tag
-    ) =>
-        await client.Repository.Release.Get(repository.Owner, repository.Name, tag);
+    ) => await client.Repository.Release.Get(repository.Owner, repository.Name, tag);
 
     private static async Task<Release?> TryGetRelease(
         GitHubClient client,
@@ -174,41 +389,14 @@ static class ReleaseTasks
         }
     }
 
-    private static ReleaseMetadata GetMetadata(ICakeContext context, BuildPaths paths)
-    {
-        var tag = context.Argument(
-            "release-tag",
-            context.EnvironmentVariable<string>("GITHUB_REF_NAME", string.Empty)
-        );
-        if (string.IsNullOrWhiteSpace(tag) || !tag.StartsWith('v') || tag.Length == 1)
-        {
-            throw new CakeException("Release tag must start with 'v' and include a version.");
-        }
-
-        var version = XDocument
-            .Load(paths.ServerProject.FullPath)
-            .Descendants("Version")
-            .SingleOrDefault()
-            ?.Value;
-        if (string.IsNullOrWhiteSpace(version))
-        {
-            throw new CakeException($"Project version was not found in '{paths.ServerProject}'.");
-        }
-
-        if (tag[1..] != version)
-        {
-            throw new CakeException($"Project version '{version}' must match release tag '{tag}'.");
-        }
-
-        return new ReleaseMetadata(tag, version, paths.GetNuGetPackage(version));
-    }
-
     private static GitHubRepository GetRepository(ICakeContext context)
     {
         var parts = GetRequiredEnvironmentVariable(context, "GITHUB_REPOSITORY").Split('/', 2);
         if (parts.Length != 2 || parts.Any(string.IsNullOrWhiteSpace))
         {
-            throw new CakeException("Environment variable 'GITHUB_REPOSITORY' must use the 'owner/repository' format.");
+            throw new CakeException(
+                "Environment variable 'GITHUB_REPOSITORY' must use the 'owner/repository' format."
+            );
         }
 
         return new GitHubRepository(parts[0], parts[1]);
@@ -231,4 +419,6 @@ static class ReleaseTasks
     }
 
     private record GitHubRepository(string Owner, string Name);
+
+    private record GitResult(int ExitCode, string Output);
 }

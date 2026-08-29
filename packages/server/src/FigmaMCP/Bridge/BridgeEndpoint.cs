@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Text.Json;
+using FigmaMCP;
 using FigmaMCP.Connections;
 using MessagePack;
 
@@ -296,7 +297,7 @@ public static class BridgeEndpoint
         return MessagePackSerializer.Serialize(
             new Dictionary<string, object>
             {
-                ["server_version"] = "0.2.0",
+                ["server_version"] = ProductInfo.Version,
                 ["request_timeout_ms"] = (int)BridgeProtocol.RequestTimeout.TotalMilliseconds,
                 ["max_message_bytes"] = BridgeProtocol.MaxMessageBytes,
             },

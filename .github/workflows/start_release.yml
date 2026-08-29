@@ -1,15 +1,13 @@
 name: Start release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release-master
   cancel-in-progress: false
 
 env:
@@ -17,16 +15,32 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
+  validate_source:
+    name: Validate release source
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require master
+        if: ${{ github.ref != 'refs/heads/master' }}
+        run: |
+          echo "Start release from the master branch, not $GITHUB_REF." >&2
+          exit 1
+
   ci:
     name: CI
+    needs: validate_source
     uses: ./.github/workflows/main.yml
 
   prepare_release:
-    name: Test, build, and create draft release
-    needs: ci
+    name: Build and create draft release
+    needs:
+      - validate_source
+      - ci
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: master
+          fetch-depth: 0
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
@@ -45,4 +59,4 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: >-
           bash ./build.sh --target :release:prepare
-          --configuration Release --release-tag "${{ github.ref_name }}"
+          --configuration Release

@@ -1,0 +1,13 @@
+next-version: 1.0.0
+workflow: TrunkBased/preview1
+tag-prefix: "[vV]?"
+semantic-version-format: Strict
+commit-message-incrementing: Enabled
+major-version-bump-message: "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\\([\\w\\s,./-]+\\))?(!:|:.*\\n\\n(?:.*\\n)*BREAKING CHANGE:\\s.+)"
+minor-version-bump-message: "^feat(\\([\\w\\s,./-]+\\))?:"
+patch-version-bump-message: "^(fix|perf)(\\([\\w\\s,./-]+\\))?:"
+no-bump-message: "^(build|chore|ci|docs|refactor|revert|style|test)(\\([\\w\\s,./-]+\\))?:"
+
+branches:
+  main:
+    regex: ^master$

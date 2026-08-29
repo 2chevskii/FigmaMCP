@@ -1,6 +1,6 @@
+using System.IO.Compression;
 using Cake.Common.Tools.DotNet.Pack;
 using Cake.Core;
-using System.IO.Compression;
 
 static class PackageTasks
 {
@@ -17,6 +17,9 @@ static class PackageTasks
                 NoRestore = true,
                 OutputDirectory = paths.ReleaseDirectory,
                 WorkingDirectory = paths.ServerDirectory,
+                MSBuildSettings = new DotNetMSBuildSettings().AddTo(
+                    VersionTasks.Calculate(context, paths)
+                ),
             }
         );
     }
@@ -31,7 +34,11 @@ static class PackageTasks
     public static void CreatePluginArchive(ICakeContext context, BuildPaths paths) =>
         CreateArchive(context, paths.PluginDistributionDirectory, paths.PluginReleaseArchive);
 
-    private static void CreateArchive(ICakeContext context, DirectoryPath source, FilePath destination)
+    private static void CreateArchive(
+        ICakeContext context,
+        DirectoryPath source,
+        FilePath destination
+    )
     {
         context.EnsureDirectoryExists(destination.GetDirectory());
         if (context.FileExists(destination))
