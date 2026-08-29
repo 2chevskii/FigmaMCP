@@ -1,0 +1,18 @@
+{
+  "name": "figma-mcp-documentation",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Documentation website for Figma MCP",
+  "scripts": {
+    "docs:dev": "vitepress dev .",
+    "docs:build": "vitepress build .",
+    "docs:preview": "vitepress preview .",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vitepress": "^2.0.0-alpha.19",
+    "vitepress-plugin-mermaid-diagram": "^0.3.2"
+  }
+}

@@ -8,6 +8,13 @@ static class BuildTargets
         public const string Restore = ":tools:restore";
     }
 
+    public static class Docs
+    {
+        public const string Install = ":docs:install";
+        public const string Typecheck = ":docs:typecheck";
+        public const string Build = ":docs:build";
+    }
+
     public static class Server
     {
         public const string Format = ":server:format";

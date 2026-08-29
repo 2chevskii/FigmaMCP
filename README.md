@@ -18,8 +18,9 @@ flowchart LR
 - An in-memory connection registry, sequential RPC per connection, and bounded payloads.
 - Local tools for reading and editing Figma Design documents.
 
-The [tool reference](docs/TOOLS.md) defines the contract, and [Plugin API coverage](docs/PLUGIN_API_TOOL_COVERAGE.md)
-describes Figma API capabilities and limits.
+The [documentation website](docs/) includes the [tool reference](docs/tools.md) and
+[Plugin API coverage](docs/plugin-api-tool-coverage.md), which describe the contract, capabilities,
+and limits.
 
 ## Requirements
 
@@ -74,8 +75,9 @@ flowchart TD
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Development and validation](docs/DEVELOPMENT.md)
+- [Documentation website](docs/)
+- [Architecture](docs/architecture.md)
+- [Development and validation](docs/development.md)
 - [Normative specification](.agents/SPEC.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](.github/SECURITY.md)

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "strict": true,
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["./.vitepress/**/*.ts", "./.vitepress/**/*.mts", "./.vitepress/**/*.vue"],
+  "exclude": ["./.vitepress/cache", "./.vitepress/dist", "./node_modules"]
+}

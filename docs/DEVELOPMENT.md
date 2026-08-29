@@ -1,3 +1,8 @@
+---
+title: Development
+description: Build, validate, and develop Figma MCP locally.
+---
+
 # Development
 
 ## Repository layout
@@ -26,10 +31,13 @@ The root `build/build.cs` is a Cake.Sdk build. Use `build.ps1` on Windows and `b
 Use it instead of changing into package directories or reproducing CI commands:
 
 Named targets use a leading colon. Select a scenario with `--target`, for example `:server:build` or
-`:package:release`. Without `--target`, the default `:build` target builds both components.
+`:package:release`. Without `--target`, the default `:build` target builds the documentation website
+and both runtime components.
 
 ```powershell
 ./build.ps1
+./build.ps1 --target :docs:build
+./build.ps1 --target :docs:typecheck
 ./build.ps1 --target :server:build --configuration Release
 ./build.ps1 --target :plugin:test
 ./build.ps1 --target :package:release --configuration Release
@@ -37,6 +45,15 @@ Named targets use a leading colon. Select a scenario with `--target`, for exampl
 ```
 
 On Linux and macOS, replace `./build.ps1` with `bash ./build.sh`.
+
+The docs targets install the locked npm dependencies from `docs/package-lock.json`. `:docs:typecheck`
+validates the VitePress configuration, and `:docs:build` type-checks and generates the static site in
+`docs/.vitepress/dist/`.
+
+Pushes to `master` run `.github/workflows/docs.yml`. The workflow builds the website through
+`:docs:build`, uploads `docs/.vitepress/dist/` as the GitHub Pages artifact, and deploys it to the
+`github-pages` environment. It supplies the repository-specific Pages base path through `DOCS_BASE`;
+local builds default to `/`.
 
 Use `--dryrun` to display a target's dependency graph without executing it. Generated packages and
 archives are written beneath `artifacts/`.

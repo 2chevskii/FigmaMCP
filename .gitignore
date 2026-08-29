@@ -5,6 +5,10 @@ packages/plugin/dist/
 web/*/node_modules/
 web/*/dist/
 web/*/*.tsbuildinfo
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/.npm-cache/
+docs/node_modules/
 .idea/
 .vscode/
 !.vscode/

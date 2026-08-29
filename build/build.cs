@@ -11,6 +11,15 @@ var paths = BuildPaths.Create(rootDirectory);
 Task(BuildTargets.Clean).Does(() => CoreTasks.Clean(Context, paths));
 Task(BuildTargets.Tools.Restore).Does(() => CoreTasks.RestoreTools(Context));
 
+Task(BuildTargets.Docs.Install).Does(() => DocsTasks.Install(Context, paths));
+Task(BuildTargets.Docs.Typecheck)
+    .IsDependentOn(BuildTargets.Docs.Install)
+    .Does(() => DocsTasks.Typecheck(Context, paths));
+Task(BuildTargets.Docs.Build)
+    .IsDependentOn(BuildTargets.Docs.Install)
+    .IsDependentOn(BuildTargets.Docs.Typecheck)
+    .Does(() => DocsTasks.Build(Context, paths));
+
 Task(BuildTargets.Server.Format)
     .IsDependentOn(BuildTargets.Tools.Restore)
     .Does(() => ServerTasks.Format(Context, paths));
@@ -41,6 +50,7 @@ Task(BuildTargets.Plugin.Build)
     .Does(() => PluginTasks.Build(Context, paths));
 
 Task(BuildTargets.Build)
+    .IsDependentOn(BuildTargets.Docs.Build)
     .IsDependentOn(BuildTargets.Server.Build)
     .IsDependentOn(BuildTargets.Plugin.Build);
 

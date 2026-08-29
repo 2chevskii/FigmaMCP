@@ -13,12 +13,12 @@ source, manifest, UI, settings, or `figma-mcp-bridge.v2` protocol without explic
 Read these documents in order before architecture or server changes:
 
 1. [`.agents/SPEC.md`](.agents/SPEC.md) — normative specification and project scope.
-2. [`docs/README.md`](docs/README.md) — product overview and entry points.
-3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — transports, bridge lifecycle, state, and security
+2. [`docs/index.md`](docs/index.md) — product overview and entry points.
+3. [`docs/architecture.md`](docs/architecture.md) — transports, bridge lifecycle, state, and security
    boundary.
-4. [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — repository layout, build commands, and validation.
-5. [`docs/TOOLS.md`](docs/TOOLS.md) — MCP tool contract, schemas, `connection_id`, limits, and errors.
-6. [`docs/PLUGIN_API_TOOL_COVERAGE.md`](docs/PLUGIN_API_TOOL_COVERAGE.md) — Figma Plugin API coverage,
+4. [`docs/development.md`](docs/development.md) — repository layout, build commands, and validation.
+5. [`docs/tools.md`](docs/tools.md) — MCP tool contract, schemas, `connection_id`, limits, and errors.
+6. [`docs/plugin-api-tool-coverage.md`](docs/plugin-api-tool-coverage.md) — Figma Plugin API coverage,
    deferred capabilities, and manifest constraints.
 
 The public repository documents complement this technical documentation:
@@ -29,7 +29,7 @@ The public repository documents complement this technical documentation:
 
 When documents conflict, use this precedence:
 the latest explicit user instruction → `AGENTS.md` → the normative sections of `.agents/SPEC.md` →
-`docs/ARCHITECTURE.md` → other documents → existing code.
+`docs/architecture.md` → other documents → existing code.
 
 ## Local agent skills
 

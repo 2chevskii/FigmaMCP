@@ -1,3 +1,8 @@
+---
+title: Architecture
+description: Figma MCP transports, connection lifecycle, and security boundaries.
+---
+
 # Architecture
 
 ## Purpose
@@ -8,12 +13,33 @@ All runtime state is local to the user's machine and held in memory.
 ## Components and transports
 
 ```mermaid
-flowchart LR
-    client[MCP client] <-->|MCP / STDIO<br/>stdin / stdout| companion[Local MCP companion]
-    companion <-->|WebSocket / MessagePack<br/>127.0.0.1:&lt;bridge-port&gt;/bridge| plugin[Figma plugin]
-    companion --- registry[(In-memory live connection registry)]
-    registry --- plugin
-    plugin --> api[Figma Plugin API]
+sequenceDiagram
+    participant Client as MCP client
+    participant Companion as Local MCP companion
+    participant Registry as Connection registry
+    participant Plugin as Figma Bridge plugin
+    participant API as Figma Plugin API
+
+    Client->>Companion: Start via MCP over STDIO
+    Plugin->>Companion: Open loopback WebSocket /bridge
+    Companion->>Registry: Validate hello and store connection_id
+    Companion-->>Plugin: hello_ack
+
+    Client->>Companion: list_figma_connections
+    Companion->>Registry: Read active connections
+    Registry-->>Companion: Available connection_id values
+    Companion-->>Client: Connection list
+
+    Client->>Companion: Document-specific tool with connection_id
+    Note over Companion: Queue the call and allocate request_id
+    Companion->>Plugin: MessagePack bridge request
+    Plugin->>API: Read or mutate the open document
+    API-->>Plugin: Operation result
+    Plugin-->>Companion: Bridge response with request_id
+    Companion-->>Client: Matched MCP result
+
+    Plugin->>Companion: WebSocket disconnect
+    Companion->>Registry: Remove connection and fail pending RPCs
 ```
 
 The process has two transport roles:

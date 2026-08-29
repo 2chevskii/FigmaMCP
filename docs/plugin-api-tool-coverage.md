@@ -1,3 +1,8 @@
+---
+title: Plugin API coverage
+description: Supported and deferred Figma Plugin API capabilities.
+---
+
 # Figma Plugin API coverage
 
 ## Scope and source of truth
@@ -30,7 +35,7 @@ tool list.
 ## Implementation status
 
 The Figma Design portion of this catalog is implemented in connector version 0.2.0. The complete
-registered catalog and input conventions are documented in [TOOLS.md](TOOLS.md).
+registered catalog and input conventions are documented in [MCP tool reference](./tools).
 
 The implementation intentionally excludes the editor-specific tools in section 11, the
 invocation-driven/product-management APIs in section 12, private/partner-only APIs, and unrestricted

@@ -1,3 +1,8 @@
+---
+title: MCP tool reference
+description: Figma MCP tool contracts, inputs, limits, and errors.
+---
+
 # Figma Design MCP tool reference
 
 Connector version: 0.2.0
