@@ -85,7 +85,9 @@ ARM64 profiles in parallel on Ubuntu and uploads one artifact per runtime.
 `:server:publish-tests` creates the self-contained Microsoft.Testing.Platform executable used by CI
 under `artifacts/server-tests/<runtime>/`. The executable runs without a .NET installation or source
 checkout. Its two portable PDB files remain beside it so the standalone Windows test run can produce
-line coverage. Local test runs continue to use `:server:test` and `dotnet test`.
+line coverage. CI configures the coverage collector to resolve those external symbols and retain
+assemblies whose source checkout is intentionally absent. Local test runs continue to use
+`:server:test` and `dotnet test`.
 
 During development, start the STDIO server through an MCP client or a local STDIO harness. Do not
 write diagnostics to `stdout`: that stream belongs to the MCP protocol. The local bridge listens on

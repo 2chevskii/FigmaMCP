@@ -98,12 +98,27 @@ jobs:
         working-directory: artifacts/server-tests/win-x64
         run: |
           $resultsDirectory = Join-Path $env:GITHUB_WORKSPACE "artifacts/server-test-results"
+          $coverageSettings = Join-Path $env:RUNNER_TEMP "server-coverage.settings"
+          $symbolDirectory = [System.Security.SecurityElement]::Escape((Get-Location).Path)
+          $coverageConfiguration = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <Configuration>
+            <ExcludeAssembliesWithoutSources>None</ExcludeAssembliesWithoutSources>
+            <CodeCoverage>
+              <SymbolSearchPaths>
+                <Path>$symbolDirectory</Path>
+              </SymbolSearchPaths>
+            </CodeCoverage>
+          </Configuration>
+          "@
           New-Item -ItemType Directory -Force -Path $resultsDirectory | Out-Null
+          [System.IO.File]::WriteAllText($coverageSettings, $coverageConfiguration)
           & ./FigmaMCP.Tests.Unit.exe `
             --results-directory $resultsDirectory `
             --report-trx `
             --report-trx-filename server.trx `
             --coverage `
+            --coverage-settings $coverageSettings `
             --coverage-output-format cobertura `
             --coverage-output coverage.cobertura.xml
           $testExitCode = $LASTEXITCODE
