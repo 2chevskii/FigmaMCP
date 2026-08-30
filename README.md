@@ -24,44 +24,73 @@ and limits.
 
 ## Requirements
 
-- Windows x64.
-- .NET SDK 10, pinned in [global.json](global.json).
-- Node.js and npm to build the Figma plugin and run MCP Inspector.
-- Figma Desktop for manual validation in a real document.
+- Figma Desktop.
+- .NET 10 SDK when installing the companion as a global .NET tool.
+- No .NET installation when using a self-contained Windows, Linux, or macOS release archive.
+- Node.js and npm only when building the Figma plugin or running MCP Inspector from source.
 
 ## Quick start
 
-1. Build the companion and Bridge plugin through the root build:
+1. Install the companion from NuGet.org:
 
-   ```powershell
-   ./build.ps1 --configuration Release
+   ```shell
+   dotnet tool install --global FigmaMCP
    ```
 
-2. In Figma Desktop, import `packages/plugin/dist/manifest.json` as a development plugin and open it
-   in the desired document. Keep the Bridge port at `3846`, unless you configure a different port for
-   the server with `--port <1-65535>` or the server reports a fallback port on `stderr` at startup.
+2. Download `figma-mcp-plugin.zip` from the matching GitHub Release, extract it, and import its
+   `manifest.json` in Figma Desktop as a development plugin. Open the plugin in the desired document.
+   Keep the Bridge port at `3846`, unless you configure a different port for the server with
+   `--port <1-65535>` or the server reports a fallback port on `stderr` at startup.
 
-3. Start Inspector to verify an MCP session. The target builds the server and passes it to Inspector
-   as a STDIO process:
+3. Configure the MCP client to start `figma-mcp-server` over STDIO:
 
-   ```powershell
-   ./build.ps1 --target :server:inspector --configuration Debug
+   ```json
+   {
+     "mcpServers": {
+       "figma": {
+         "command": "figma-mcp-server"
+       }
+     }
+   }
    ```
 
 After the plugin connects, call `list_figma_connections` and pass the returned `connection_id` to
 document-specific tools.
 
-## Connect an MCP client
+## Self-contained companion
 
-To publish a standalone Windows binary:
+Each GitHub Release also contains self-contained archives for Windows x64, Linux x64, and Apple
+Silicon macOS. These builds do not require .NET to be installed:
+
+- `figma-mcp-server-win-x64.zip`
+- `figma-mcp-server-linux-x64.zip`
+- `figma-mcp-server-osx-arm64.zip`
+
+To build one locally, select its runtime explicitly:
 
 ```powershell
-./build.ps1 --target :server:publish --configuration Release
+./build.ps1 --target :server:publish --configuration Release --runtime win-x64
 ```
 
-The generated files are in `artifacts/server/win-x64`. Configure `FigmaMCP.exe` as the MCP server command in the client. Add
-`--port <1-65535>` to select the local Bridge port when the default `3846` is unavailable. Do not
-redirect its `stdout`: it is reserved for MCP protocol traffic.
+The generated files are in `artifacts/server/<runtime>`. Configure `FigmaMCP.exe` on Windows or
+`FigmaMCP` on Linux/macOS as the MCP server command. Add `--port <1-65535>` to select the local Bridge
+port when the default `3846` is unavailable. Do not redirect its `stdout`: it is reserved for MCP
+protocol traffic.
+
+## Build from source
+
+The repository pins the .NET SDK in [global.json](global.json). Build the companion, plugin, and
+documentation through the root build:
+
+```powershell
+./build.ps1 --configuration Release
+```
+
+Start MCP Inspector against the local companion with:
+
+```powershell
+./build.ps1 --target :server:inspector --configuration Debug
+```
 
 ## Repository layout
 

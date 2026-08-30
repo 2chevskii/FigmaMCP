@@ -1,7 +1,7 @@
 {
   "name": "figma-mcp-documentation",
   "private": true,
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Documentation website for Figma MCP",
   "scripts": {
     "docs:dev": "vitepress dev .",

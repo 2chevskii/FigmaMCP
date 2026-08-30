@@ -131,9 +131,19 @@ static class ServerTasks
         );
     }
 
-    public static void Publish(ICakeContext context, BuildPaths paths)
+    public static void Publish(ICakeContext context, BuildPaths paths) =>
+        Publish(context, paths, context.Argument("runtime", PublishRuntime), noRestore: true);
+
+    public static void PublishForRelease(ICakeContext context, BuildPaths paths, string runtime) =>
+        Publish(context, paths, runtime, noRestore: false);
+
+    private static void Publish(
+        ICakeContext context,
+        BuildPaths paths,
+        string runtime,
+        bool noRestore
+    )
     {
-        var runtime = context.Argument("runtime", PublishRuntime);
         var outputDirectory = paths.GetServerPublishDirectory(runtime);
         context.EnsureDirectoryExists(outputDirectory);
         context.CleanDirectory(outputDirectory);
@@ -142,7 +152,7 @@ static class ServerTasks
             new DotNetPublishSettings
             {
                 Configuration = context.Argument("configuration", "Release"),
-                NoRestore = true,
+                NoRestore = noRestore,
                 OutputDirectory = outputDirectory,
                 WorkingDirectory = paths.ServerDirectory,
                 MSBuildSettings = new DotNetMSBuildSettings()

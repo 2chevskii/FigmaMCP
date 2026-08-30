@@ -69,9 +69,7 @@ Task(BuildTargets.Build)
 Task(BuildTargets.Package.NuGet)
     .IsDependentOn(BuildTargets.Server.Restore)
     .Does(() => PackageTasks.CreateNuGetPackage(Context, paths));
-Task(BuildTargets.Package.Server)
-    .IsDependentOn(BuildTargets.Server.Publish)
-    .Does(() => PackageTasks.CreateServerArchive(Context, paths));
+Task(BuildTargets.Package.Server).Does(() => PackageTasks.CreateServerArchives(Context, paths));
 Task(BuildTargets.Package.Plugin)
     .IsDependentOn(BuildTargets.Plugin.Build)
     .Does(() => PackageTasks.CreatePluginArchive(Context, paths));

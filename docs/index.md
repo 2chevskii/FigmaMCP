@@ -60,7 +60,26 @@ idempotent mutation keys where applicable.
 
 ## Starting the companion
 
-The MCP client starts the executable as a child process. A client configuration can look like this:
+Install the cross-platform .NET tool from NuGet.org:
+
+```shell
+dotnet tool install --global FigmaMCP
+```
+
+The MCP client starts the tool as a child process:
+
+```json
+{
+  "mcpServers": {
+    "figma": {
+      "command": "figma-mcp-server"
+    }
+  }
+}
+```
+
+Alternatively, download a self-contained `win-x64`, `linux-x64`, or `osx-arm64` archive from the
+matching GitHub Release. A Windows client configuration can then look like this:
 
 ```json
 {

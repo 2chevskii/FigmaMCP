@@ -97,11 +97,13 @@ Install the local `commit-msg` hook with `:commits:hook:install`. The hook and t
 GitHub Actions delegates release scenarios to Cake. Run the **Start release** workflow manually on
 `master`; `:release:prepare` verifies that the checkout is the exact clean `origin/master` commit,
 validates its release commit range, computes the next version, creates and pushes the annotated tag,
-builds the three release assets, and creates or updates a draft GitHub release. Publishing that draft
+builds the NuGet package and symbols, three self-contained server archives, and the plugin archive,
+then creates or updates a draft GitHub release. Publishing that draft
 starts **Finish release**. Its `:release:publish:nuget` and `:release:publish:github-packages` targets
-download the exact package attached to the published release and send it to the corresponding
-registry. Release targets require GitHub Actions credentials and should normally run only in their
-workflows.
+download the exact packages attached to the published release and send them to the corresponding
+registry. NuGet.org authentication uses Trusted Publishing with a short-lived OIDC credential from
+the protected `package-publishing` environment; no long-lived NuGet API key is stored. Release
+targets require GitHub Actions credentials and should normally run only in their workflows.
 
 ## Companion
 

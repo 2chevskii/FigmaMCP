@@ -23,7 +23,6 @@ record BuildPaths(
     FilePath ServerTestProject,
     FilePath ServerTestReport,
     FilePath ServerCoverageReport,
-    FilePath ServerReleaseArchive,
     FilePath PluginReleaseArchive
 )
 {
@@ -63,7 +62,6 @@ record BuildPaths(
             serverTestProjectDirectory.CombineWithFilePath("FigmaMCP.Tests.Unit.csproj"),
             serverTestResultsDirectory.CombineWithFilePath("server.trx"),
             serverTestResultsDirectory.CombineWithFilePath("coverage.cobertura.xml"),
-            releaseDirectory.CombineWithFilePath("figma-mcp-server-win-x64.zip"),
             releaseDirectory.CombineWithFilePath("figma-mcp-plugin.zip")
         );
     }
@@ -83,6 +81,15 @@ record BuildPaths(
     public FilePath GetNuGetPackage(string version) =>
         ReleaseDirectory.CombineWithFilePath($"FigmaMCP.{version}.nupkg");
 
+    public FilePath GetNuGetSymbolsPackage(string version) =>
+        ReleaseDirectory.CombineWithFilePath($"FigmaMCP.{version}.snupkg");
+
     public FilePath GetDownloadedNuGetPackage(string version) =>
         ReleaseDownloadDirectory.CombineWithFilePath($"FigmaMCP.{version}.nupkg");
+
+    public FilePath GetDownloadedNuGetSymbolsPackage(string version) =>
+        ReleaseDownloadDirectory.CombineWithFilePath($"FigmaMCP.{version}.snupkg");
+
+    public FilePath GetServerReleaseArchive(string runtime) =>
+        ReleaseDirectory.CombineWithFilePath($"figma-mcp-server-{runtime}.zip");
 }

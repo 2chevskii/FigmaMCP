@@ -83,12 +83,13 @@ static class ReleaseTasks
         var metadata =
             stagedRelease
             ?? throw new CakeException("The release must be staged before creating its draft.");
-        var assets = new[]
+        var assets = new List<FilePath>
         {
             metadata.Package,
-            paths.ServerReleaseArchive,
+            paths.GetNuGetSymbolsPackage(metadata.Version),
             paths.PluginReleaseArchive,
         };
+        assets.AddRange(PackageTasks.ServerReleaseRuntimes.Select(paths.GetServerReleaseArchive));
 
         foreach (var asset in assets)
         {
@@ -158,52 +159,49 @@ static class ReleaseTasks
     {
         var metadata = GetPublishedReleaseMetadata(context, paths);
         context.EnsureDirectoryExists(paths.ReleaseDownloadDirectory);
-        var package = paths.GetDownloadedNuGetPackage(metadata.Version);
-        if (context.FileExists(package))
-        {
-            context.DeleteFile(package);
-        }
-
         var client = CreateGitHubClient(context);
         var repository = GetRepository(context);
         var release = await GetRelease(client, repository, metadata.Tag);
-        var asset = (
-            await client.Repository.Release.GetAllAssets(
-                repository.Owner,
-                repository.Name,
-                release.Id
-            )
-        ).SingleOrDefault(candidate =>
-            candidate.Name == System.IO.Path.GetFileName(metadata.Package.FullPath)
+        var assets = await client.Repository.Release.GetAllAssets(
+            repository.Owner,
+            repository.Name,
+            release.Id
         );
-        if (asset is null)
-        {
-            throw new CakeException(
-                $"Release package '{metadata.Package.GetFilename()}' was not found."
-            );
-        }
-
-        var connection = new ApiConnection(client.Connection);
-        await using var source = await connection.GetRawStream(
-            new Uri(asset.Url),
-            new Dictionary<string, string> { ["Accept"] = ReleaseAssetMediaType }
+        await DownloadReleaseAsset(
+            context,
+            client,
+            assets,
+            metadata.Package,
+            paths.GetDownloadedNuGetPackage(metadata.Version)
         );
-        await using var destination = System.IO.File.Create(package.FullPath);
-        await source.CopyToAsync(destination);
+        await DownloadReleaseAsset(
+            context,
+            client,
+            assets,
+            paths.GetNuGetSymbolsPackage(metadata.Version),
+            paths.GetDownloadedNuGetSymbolsPackage(metadata.Version)
+        );
     }
 
     public static void PublishToNuGet(ICakeContext context, BuildPaths paths)
     {
         var metadata = GetPublishedReleaseMetadata(context, paths);
-        context.DotNetNuGetPush(
-            paths.GetDownloadedNuGetPackage(metadata.Version),
-            new DotNetNuGetPushSettings
+        var settings = new DotNetNuGetPushSettings
+        {
+            ApiKey = GetRequiredEnvironmentVariable(context, "NUGET_API_KEY"),
+            SkipDuplicate = true,
+            Source = NuGetOrgSource,
+        };
+        foreach (
+            var package in new[]
             {
-                ApiKey = GetRequiredEnvironmentVariable(context, "NUGET_API_KEY"),
-                SkipDuplicate = true,
-                Source = NuGetOrgSource,
+                paths.GetDownloadedNuGetPackage(metadata.Version),
+                paths.GetDownloadedNuGetSymbolsPackage(metadata.Version),
             }
-        );
+        )
+        {
+            context.DotNetNuGetPush(package, settings);
+        }
     }
 
     public static void PublishToGitHubPackages(ICakeContext context, BuildPaths paths)
@@ -389,6 +387,35 @@ static class ReleaseTasks
         }
     }
 
+    private static async Task DownloadReleaseAsset(
+        ICakeContext context,
+        GitHubClient client,
+        IReadOnlyList<ReleaseAsset> assets,
+        FilePath expectedAsset,
+        FilePath destination
+    )
+    {
+        if (context.FileExists(destination))
+        {
+            context.DeleteFile(destination);
+        }
+
+        var fileName = System.IO.Path.GetFileName(expectedAsset.FullPath);
+        var asset = assets.SingleOrDefault(candidate => candidate.Name == fileName);
+        if (asset is null)
+        {
+            throw new CakeException($"Release package '{fileName}' was not found.");
+        }
+
+        var connection = new ApiConnection(client.Connection);
+        await using var source = await connection.GetRawStream(
+            new Uri(asset.Url),
+            new Dictionary<string, string> { ["Accept"] = ReleaseAssetMediaType }
+        );
+        await using var output = System.IO.File.Create(destination.FullPath);
+        await source.CopyToAsync(output);
+    }
+
     private static GitHubRepository GetRepository(ICakeContext context)
     {
         var parts = GetRequiredEnvironmentVariable(context, "GITHUB_REPOSITORY").Split('/', 2);
@@ -404,6 +431,7 @@ static class ReleaseTasks
 
     private static string GetContentType(FilePath asset) =>
         asset.GetExtension().Equals(".nupkg", StringComparison.OrdinalIgnoreCase)
+        || asset.GetExtension().Equals(".snupkg", StringComparison.OrdinalIgnoreCase)
             ? "application/vnd.nuget.package"
             : "application/zip";
 
