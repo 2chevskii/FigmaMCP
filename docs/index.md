@@ -5,6 +5,9 @@ hero:
   name: Figma MCP
   text: A local companion for Figma documents
   tagline: Connect MCP clients to an open Figma document through a local, loopback-only bridge.
+  image:
+    src: /branding/figmamcp-icon.png
+    alt: FigmaMCP connector mark
   actions:
     - theme: brand
       text: Get started
@@ -21,6 +24,8 @@ features:
   - title: Typed and bounded
     details: The bridge uses typed MessagePack contracts, bounded payloads, serialized calls, and controlled mutation semantics.
 ---
+
+![FigmaMCP — A local bridge between MCP and your Figma canvas](/branding/figmamcp-banner.png){.brand-banner}
 
 ## Overview
 

@@ -9,14 +9,25 @@ if (releaseTag && !/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(releaseTag
 }
 
 const documentationVersion = releaseTag ?? "development";
+const documentationBase = process.env.DOCS_BASE ?? "/";
 const versionLink = releaseTag
   ? `https://github.com/2chevskii/figma-mcp/releases/tag/${releaseTag}`
   : "https://github.com/2chevskii/figma-mcp";
 
 export default defineConfig({
-  base: process.env.DOCS_BASE ?? "/",
+  base: documentationBase,
   title: "Figma MCP",
   description: "A local MCP companion for Figma documents.",
+  head: [
+    [
+      "link",
+      {
+        rel: "icon",
+        type: "image/png",
+        href: `${documentationBase}branding/figmamcp-icon.png`,
+      },
+    ],
+  ],
   cleanUrls: true,
   markdown: {
     config(md) {
@@ -24,6 +35,7 @@ export default defineConfig({
     },
   },
   themeConfig: {
+    logo: { src: "/branding/figmamcp-icon.png", alt: "FigmaMCP" },
     nav: [
       { text: "Guide", link: "/" },
       { text: "Tool reference", link: "/TOOLS" },

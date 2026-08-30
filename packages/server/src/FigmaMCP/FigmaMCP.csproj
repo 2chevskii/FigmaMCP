@@ -10,6 +10,7 @@
     <RepositoryUrl>https://github.com/2chevskii/FigmaMCP.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>figma;mcp;model-context-protocol;dotnet-tool</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>true</IncludeSymbols>
@@ -21,6 +22,11 @@
   <ItemGroup>
     <None Include="../../../../LICENSE" Pack="true" PackagePath="/" Link="LICENSE" />
     <None Include="../../../../README.md" Pack="true" PackagePath="/" Link="README.md" />
+    <None
+      Include="../../../../assets/branding/figmamcp-icon-128.png"
+      Pack="true"
+      PackagePath="icon.png"
+    />
     <PackageReference Include="MessagePack" />
     <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>

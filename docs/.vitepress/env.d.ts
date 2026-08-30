@@ -6,3 +6,4 @@ declare module "vitepress-plugin-mermaid-diagram/DiagramPreview.vue" {
 }
 
 declare module "vitepress-plugin-mermaid-diagram/diagram-dark.css";
+declare module "*.css";
