@@ -98,7 +98,8 @@ GitHub Actions delegates release scenarios to Cake. Run the **Start release** wo
 `master`; `:release:prepare` verifies that the checkout is the exact clean `origin/master` commit,
 validates its release commit range, computes the next version, creates and pushes the annotated tag,
 builds the NuGet package and symbols, three self-contained server archives, and the plugin archive,
-then creates or updates a draft GitHub release. Publishing that draft
+then creates or updates a draft GitHub release. Every server and plugin archive includes the product
+version in its file name. Publishing that draft
 starts **Finish release**. Its `:release:publish:nuget` and `:release:publish:github-packages` targets
 download the exact packages attached to the published release and send them to the corresponding
 registry. NuGet.org authentication uses Trusted Publishing with a short-lived OIDC credential from
@@ -121,7 +122,8 @@ The server uses .NET 10 and central package management. The root build exposes i
 
 `:server:publish` selects the publish profile named after its runtime and writes the self-contained
 output under `artifacts/server/<runtime>/`. CI cross-publishes the Windows x64, Linux x64, and macOS
-ARM64 profiles in parallel on Ubuntu and uploads one artifact per runtime.
+ARM64 profiles in parallel on Ubuntu and uploads one versioned artifact per runtime. A separate CI
+job builds the versioned NuGet package and symbol package and uploads them together as one artifact.
 
 `:server:publish-tests` creates the self-contained Microsoft.Testing.Platform executable used by CI
 under `artifacts/server-tests/<runtime>/`. The executable runs without a .NET installation or source

@@ -31,19 +31,27 @@ static class PackageTasks
 
     public static void CreateServerArchives(ICakeContext context, BuildPaths paths)
     {
+        var version = VersionTasks.Calculate(context, paths).SemVer;
         foreach (var runtime in ServerReleaseRuntimes)
         {
             ServerTasks.PublishForRelease(context, paths, runtime);
             CreateArchive(
                 context,
                 paths.GetServerPublishDirectory(runtime),
-                paths.GetServerReleaseArchive(runtime)
+                paths.GetServerReleaseArchive(runtime, version)
             );
         }
     }
 
-    public static void CreatePluginArchive(ICakeContext context, BuildPaths paths) =>
-        CreateArchive(context, paths.PluginDistributionDirectory, paths.PluginReleaseArchive);
+    public static void CreatePluginArchive(ICakeContext context, BuildPaths paths)
+    {
+        var version = VersionTasks.Calculate(context, paths).SemVer;
+        CreateArchive(
+            context,
+            paths.PluginDistributionDirectory,
+            paths.GetPluginReleaseArchive(version)
+        );
+    }
 
     private static void CreateArchive(
         ICakeContext context,

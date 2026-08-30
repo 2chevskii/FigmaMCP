@@ -37,7 +37,7 @@ and limits.
    dotnet tool install --global FigmaMCP
    ```
 
-2. Download `figma-mcp-plugin.zip` from the matching GitHub Release, extract it, and import its
+2. Download `figma-mcp-plugin.<version>.zip` from the matching GitHub Release, extract it, and import its
    `manifest.json` in Figma Desktop as a development plugin. Open the plugin in the desired document.
    Keep the Bridge port at `3846`, unless you configure a different port for the server with
    `--port <1-65535>` or the server reports a fallback port on `stderr` at startup.
@@ -62,9 +62,9 @@ document-specific tools.
 Each GitHub Release also contains self-contained archives for Windows x64, Linux x64, and Apple
 Silicon macOS. These builds do not require .NET to be installed:
 
-- `figma-mcp-server-win-x64.zip`
-- `figma-mcp-server-linux-x64.zip`
-- `figma-mcp-server-osx-arm64.zip`
+- `figma-mcp-server-win-x64.<version>.zip`
+- `figma-mcp-server-linux-x64.<version>.zip`
+- `figma-mcp-server-osx-arm64.<version>.zip`
 
 To build one locally, select its runtime explicitly:
 

@@ -13,6 +13,38 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
+  product_version:
+    name: Calculate product version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Calculate product version
+        id: version
+        shell: pwsh
+        run: |
+          $versionFile = Join-Path $env:RUNNER_TEMP "product-version.txt"
+          bash ./build.sh --target :version:calculate --version-output $versionFile
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          $version = (Get-Content -Raw -LiteralPath $versionFile).Trim()
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Cake did not produce a product version."
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+
   commit_messages:
     name: Check commit messages
     runs-on: ubuntu-24.04
@@ -91,6 +123,7 @@ jobs:
 
   server_build:
     name: Build MCP server
+    needs: product_version
     strategy:
       fail-fast: false
       matrix:
@@ -115,12 +148,39 @@ jobs:
       - name: Upload server artifact
         uses: actions/upload-artifact@v7
         with:
-          name: figma-mcp-server-${{ matrix.runtime }}
+          name: figma-mcp-server-${{ matrix.runtime }}.${{ needs.product_version.outputs.version }}
           path: artifacts/server/${{ matrix.runtime }}
+          if-no-files-found: error
+
+  nuget_build:
+    name: Build MCP server NuGet packages
+    needs: product_version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build NuGet package and symbols
+        run: bash ./build.sh --target :package:nuget --configuration Release
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: FigmaMCP.${{ needs.product_version.outputs.version }}
+          path: |
+            artifacts/release/FigmaMCP.${{ needs.product_version.outputs.version }}.nupkg
+            artifacts/release/FigmaMCP.${{ needs.product_version.outputs.version }}.snupkg
           if-no-files-found: error
 
   server_test_build:
     name: Build MCP server unit tests
+    needs: product_version
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -138,7 +198,7 @@ jobs:
       - name: Upload server test executable
         uses: actions/upload-artifact@v7
         with:
-          name: figma-mcp-server-tests-linux-x64
+          name: figma-mcp-server-tests-linux-x64.${{ needs.product_version.outputs.version }}
           path: |
             artifacts/server-tests/linux-x64/FigmaMCP.Tests.Unit
             artifacts/server-tests/linux-x64/FigmaMCP.Tests.Unit.pdb
@@ -147,13 +207,15 @@ jobs:
 
   server_test:
     name: Run MCP server unit tests
-    needs: server_test_build
+    needs:
+      - product_version
+      - server_test_build
     runs-on: ubuntu-24.04
     steps:
       - name: Download server test executable
         uses: actions/download-artifact@v8
         with:
-          name: figma-mcp-server-tests-linux-x64
+          name: figma-mcp-server-tests-linux-x64.${{ needs.product_version.outputs.version }}
           path: artifacts/server-tests/linux-x64
 
       - name: Test server
@@ -199,7 +261,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: server-test-results
+          name: server-test-results.${{ needs.product_version.outputs.version }}
           path: artifacts/server-test-results
           if-no-files-found: warn
           retention-days: 14
@@ -252,6 +314,7 @@ jobs:
 
   plugin_test:
     name: Run Figma plugin unit tests
+    needs: product_version
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -277,7 +340,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: plugin-test-results
+          name: plugin-test-results.${{ needs.product_version.outputs.version }}
           path: |
             packages/plugin/TestResults/tests/junit.xml
             packages/plugin/TestResults/coverage/cobertura-coverage.xml
@@ -286,6 +349,7 @@ jobs:
 
   plugin_build:
     name: Build Figma plugin
+    needs: product_version
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -310,7 +374,7 @@ jobs:
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v7
         with:
-          name: figma-mcp-plugin
+          name: figma-mcp-plugin.${{ needs.product_version.outputs.version }}
           path: packages/plugin/dist
           if-no-files-found: error
 
@@ -318,9 +382,11 @@ jobs:
     name: Publish test reports
     if: ${{ always() && !cancelled() }}
     needs:
+      - product_version
       - commit_messages
       - server_format_check
       - server_build
+      - nuget_build
       - server_test_build
       - server_test
       - plugin_format_check
@@ -333,14 +399,14 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          name: server-test-results
+          name: server-test-results.${{ needs.product_version.outputs.version }}
           path: artifacts/summary/server
 
       - name: Download plugin test results
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          name: plugin-test-results
+          name: plugin-test-results.${{ needs.product_version.outputs.version }}
           path: artifacts/summary/plugin
 
       - name: Set up .NET for coverage reporting
@@ -377,7 +443,7 @@ jobs:
         if: ${{ hashFiles('artifacts/summary/coverage/**') != '' }}
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-report
+          name: coverage-report.${{ needs.product_version.outputs.version }}
           path: artifacts/summary/coverage
           if-no-files-found: error
           retention-days: 14

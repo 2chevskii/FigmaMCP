@@ -1,5 +1,5 @@
 {
-  "id": "dev.0x2c.figma.mcp-bridge-plugin",
+  "id": "com.github.2cheskii.figmamcp.bridge-plugin",
   "name": "FigmaMCP Bridge",
   "api": "1.0.0",
   "main": "plugin.js",
