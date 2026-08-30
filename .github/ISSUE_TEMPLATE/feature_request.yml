@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose an improvement to Figma MCP
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the user need before proposing an implementation. Review the tool coverage document for intentionally deferred capabilities.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - MCP server
+        - Figma Bridge plugin
+        - Documentation
+        - Build or CI
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to accomplish, and what blocks you today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the desired externally observable behavior or contract.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or alternative designs you evaluated.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add examples, mockups, links, or other context. Remove secrets and personal data.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched for an existing request that covers this use case.
+          required: true
+        - label: I reviewed the documented architecture and Plugin API tool coverage where relevant.
+          required: true

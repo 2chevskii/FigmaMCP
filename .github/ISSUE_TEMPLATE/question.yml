@@ -1,0 +1,55 @@
+name: Usage question
+description: Ask for help with installation, configuration, or usage
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Review the README, documentation, support guide, and existing issues before asking a question.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: State what you are trying to accomplish and where you are blocked.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Provide the Figma MCP version, release tag, or commit SHA.
+      placeholder: v1.2.3 or abc1234
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the operating system, installation method, MCP client, and Figma Desktop version when relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempts
+    attributes:
+      label: What have you tried?
+      description: Include relevant commands, documentation pages, and diagnostics.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched the documentation and existing issues.
+          required: true
+        - label: I removed secrets and personal data from the question.
+          required: true
+        - label: This is not a security vulnerability that should be reported privately.
+          required: true
