@@ -381,3 +381,17 @@ jobs:
           path: artifacts/summary/coverage
           if-no-files-found: error
           retention-days: 14
+
+      - name: Require successful CI jobs
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        shell: pwsh
+        run: |
+          $unsuccessfulJobs = ($env:NEEDS_JSON | ConvertFrom-Json).PSObject.Properties |
+            Where-Object { $_.Value.result -ne "success" }
+
+          if ($unsuccessfulJobs.Count -gt 0) {
+            $summary = $unsuccessfulJobs |
+              ForEach-Object { "$($_.Name)=$($_.Value.result)" }
+            throw "Required CI jobs did not succeed: $($summary -join ', ')."
+          }
