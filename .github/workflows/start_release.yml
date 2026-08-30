@@ -54,6 +54,11 @@ jobs:
           cache: npm
           cache-dependency-path: packages/plugin/package-lock.json
 
+      - name: Configure release tag identity
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Prepare draft release
         env:
           GITHUB_TOKEN: ${{ github.token }}
