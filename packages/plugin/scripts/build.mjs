@@ -41,7 +41,7 @@ if (watch) {
 
 async function prepareOutputDirectory() {
   await mkdir(OUTPUT_DIRECTORY, { recursive: true });
-  await Promise.all([copyManifest(), writeVersionMetadata()]);
+  await Promise.all([copyManifest(), copyCommunityIcon(), writeVersionMetadata()]);
 }
 
 async function buildBundles() {
@@ -128,6 +128,10 @@ async function writeUiHtml(script) {
 
 function copyManifest() {
   return copyFile("manifest.json", `${OUTPUT_DIRECTORY}/manifest.json`);
+}
+
+function copyCommunityIcon() {
+  return copyFile("icon.png", `${OUTPUT_DIRECTORY}/icon.png`);
 }
 
 function writeVersionMetadata() {

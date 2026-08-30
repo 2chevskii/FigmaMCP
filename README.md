@@ -1,3 +1,5 @@
+![FigmaMCP — A local bridge between MCP and your Figma canvas](https://raw.githubusercontent.com/2chevskii/FigmaMCP/master/assets/branding/figmamcp-banner.png)
+
 # Figma MCP
 
 Figma MCP is a local companion for an open Figma document through the Figma Bridge plugin. The MCP

@@ -153,6 +153,8 @@ The plugin uses the MessagePack bridge protocol and stores only the local bridge
 ```
 
 Import `packages/plugin/dist/manifest.json` as a development plugin in Figma Desktop. Keep the
+bundled `icon.png` with the distribution; it is the 128 x 128 Community icon to upload in Figma's
+publishing flow (the plugin manifest does not define Community listing artwork). Keep the
 bridge port at its default, `3846`, unless the MCP server was started with a different `--port` value
 or reported a fallback port on `stderr`; the plugin derives `ws://127.0.0.1:<bridge-port>/bridge`
 without query parameters.
