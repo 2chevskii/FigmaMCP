@@ -190,22 +190,24 @@ static class ReleaseTasks
     public static void PublishToNuGet(ICakeContext context, BuildPaths paths)
     {
         var metadata = GetPublishedReleaseMetadata(context, paths);
-        var settings = new DotNetNuGetPushSettings
+        var packageSettings = new DotNetNuGetPushSettings
         {
             ApiKey = GetRequiredEnvironmentVariable(context, "NUGET_API_KEY"),
+            IgnoreSymbols = true,
             SkipDuplicate = true,
             Source = NuGetOrgSource,
         };
-        foreach (
-            var package in new[]
+
+        context.DotNetNuGetPush(paths.GetDownloadedNuGetPackage(metadata.Version), packageSettings);
+        context.DotNetNuGetPush(
+            paths.GetDownloadedNuGetSymbolsPackage(metadata.Version),
+            new DotNetNuGetPushSettings
             {
-                paths.GetDownloadedNuGetPackage(metadata.Version),
-                paths.GetDownloadedNuGetSymbolsPackage(metadata.Version),
+                ApiKey = packageSettings.ApiKey,
+                SkipDuplicate = true,
+                Source = NuGetOrgSource,
             }
-        )
-        {
-            context.DotNetNuGetPush(package, settings);
-        }
+        );
     }
 
     public static void PublishToGitHubPackages(ICakeContext context, BuildPaths paths)
@@ -418,9 +420,7 @@ static class ReleaseTasks
         );
         await using var source =
             response.Body
-            ?? throw new CakeException(
-                $"Release package '{fileName}' returned no binary content."
-            );
+            ?? throw new CakeException($"Release package '{fileName}' returned no binary content.");
         await using var output = System.IO.File.Create(destination.FullPath);
         await source.CopyToAsync(output);
     }
