@@ -2,6 +2,10 @@
 
 # Figma MCP
 
+[![CI](https://github.com/2chevskii/FigmaMCP/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/2chevskii/FigmaMCP/actions/workflows/main.yml?query=branch%3Amaster)
+[![Documentation](https://github.com/2chevskii/FigmaMCP/actions/workflows/docs.yml/badge.svg)](https://2chevskii.github.io/FigmaMCP/)
+[![License](https://img.shields.io/github/license/2chevskii/FigmaMCP)](LICENSE)
+
 Figma MCP is a local companion for an open Figma document through the Figma Bridge plugin. The MCP
 client starts a .NET process and communicates with it over STDIO, while the plugin connects to the
 same process through a loopback WebSocket.
