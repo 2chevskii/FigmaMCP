@@ -71,7 +71,10 @@ Install the cross-platform .NET tool from NuGet.org:
 dotnet tool install --global FigmaMCP
 ```
 
-The MCP client starts the tool as a child process:
+Import the ready-to-use [`mcp.json`](https://github.com/2chevskii/FigmaMCP/blob/master/mcp.json) into
+an MCP client that accepts `mcpServers` JSON configuration. If the client does not support file
+import, add the same server definition to its configuration. The MCP client starts the tool as a
+child process:
 
 ```json
 {
