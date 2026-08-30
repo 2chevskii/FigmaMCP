@@ -19,7 +19,9 @@ static class ServerTasks
             {
                 WorkingDirectory = paths.ServerDirectory,
                 ArgumentCustomization = arguments =>
-                    arguments.Append(context.Argument("fix", false) ? "format" : "check").Append("."),
+                    arguments
+                        .Append(context.Argument("fix", false) ? "format" : "check")
+                        .Append("."),
             }
         );
 
@@ -41,6 +43,9 @@ static class ServerTasks
                 Configuration = context.Argument("configuration", "Release"),
                 NoRestore = true,
                 WorkingDirectory = paths.ServerDirectory,
+                MSBuildSettings = new DotNetMSBuildSettings().AddTo(
+                    VersionTasks.Calculate(context, paths)
+                ),
             }
         );
 
@@ -66,7 +71,8 @@ static class ServerTasks
                     .WithProperty("PublishSingleFile", "true")
                     .WithProperty("IncludeAllContentForSelfExtract", "true")
                     .WithProperty("DebugSymbols", "true")
-                    .WithProperty("DebugType", "portable"),
+                    .WithProperty("DebugType", "portable")
+                    .AddTo(VersionTasks.Calculate(context, paths)),
             }
         );
     }
@@ -83,6 +89,9 @@ static class ServerTasks
                 NoBuild = context.Argument("no-build", false),
                 WorkingDirectory = paths.ServerDirectory,
                 ResultsDirectory = paths.ServerTestResultsDirectory,
+                MSBuildSettings = new DotNetMSBuildSettings().AddTo(
+                    VersionTasks.Calculate(context, paths)
+                ),
                 ArgumentCustomization = arguments =>
                     arguments
                         .Append("--report-trx")
@@ -122,9 +131,19 @@ static class ServerTasks
         );
     }
 
-    public static void Publish(ICakeContext context, BuildPaths paths)
+    public static void Publish(ICakeContext context, BuildPaths paths) =>
+        Publish(context, paths, context.Argument("runtime", PublishRuntime), noRestore: true);
+
+    public static void PublishForRelease(ICakeContext context, BuildPaths paths, string runtime) =>
+        Publish(context, paths, runtime, noRestore: false);
+
+    private static void Publish(
+        ICakeContext context,
+        BuildPaths paths,
+        string runtime,
+        bool noRestore
+    )
     {
-        var runtime = context.Argument("runtime", PublishRuntime);
         var outputDirectory = paths.GetServerPublishDirectory(runtime);
         context.EnsureDirectoryExists(outputDirectory);
         context.CleanDirectory(outputDirectory);
@@ -133,10 +152,12 @@ static class ServerTasks
             new DotNetPublishSettings
             {
                 Configuration = context.Argument("configuration", "Release"),
-                NoRestore = true,
+                NoRestore = noRestore,
                 OutputDirectory = outputDirectory,
                 WorkingDirectory = paths.ServerDirectory,
-                MSBuildSettings = new DotNetMSBuildSettings().WithProperty("PublishProfile", runtime),
+                MSBuildSettings = new DotNetMSBuildSettings()
+                    .WithProperty("PublishProfile", runtime)
+                    .AddTo(VersionTasks.Calculate(context, paths)),
             }
         );
     }

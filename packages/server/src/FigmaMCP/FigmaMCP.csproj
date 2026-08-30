@@ -2,14 +2,24 @@
   <PropertyGroup>
     <AssemblyName>FigmaMCP</AssemblyName>
     <RootNamespace>FigmaMCP</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>1.0.0</Version>
     <PackageId>FigmaMCP</PackageId>
+    <Authors>2chevskii</Authors>
+    <Description>Local MCP companion that connects MCP clients to an open Figma document through the Figma Bridge plugin.</Description>
+    <PackageProjectUrl>https://github.com/2chevskii/FigmaMCP</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/2chevskii/FigmaMCP.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>figma;mcp;model-context-protocol;dotnet-tool</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>figma-mcp-server</ToolCommandName>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../../../../LICENSE" Pack="true" PackagePath="/" Link="LICENSE" />
     <None Include="../../../../README.md" Pack="true" PackagePath="/" Link="README.md" />
     <PackageReference Include="MessagePack" />
     <PackageReference Include="ModelContextProtocol" />

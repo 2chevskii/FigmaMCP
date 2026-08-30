@@ -1,14 +1,14 @@
 {
   "name": "figma-mcp-connector",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Figma MCP connector",
   "main": "dist/plugin.js",
   "scripts": {
     "build": "npm run compile && npm run bundle",
     "bundle": "node scripts/build.mjs",
     "compile": "tsc",
-    "format": "prettier . ../../docs --write",
-    "format:check": "prettier . ../../docs --check",
+    "format": "prettier . ../../docs --write --ignore-path ../../.gitignore",
+    "format:check": "prettier . ../../docs --check --ignore-path ../../.gitignore",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

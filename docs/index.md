@@ -8,10 +8,10 @@ hero:
   actions:
     - theme: brand
       text: Get started
-      link: /development
+      link: /DEVELOPMENT
     - theme: alt
       text: Tool reference
-      link: /tools
+      link: /TOOLS
 
 features:
   - title: Local by design
@@ -60,7 +60,26 @@ idempotent mutation keys where applicable.
 
 ## Starting the companion
 
-The MCP client starts the executable as a child process. A client configuration can look like this:
+Install the cross-platform .NET tool from NuGet.org:
+
+```shell
+dotnet tool install --global FigmaMCP
+```
+
+The MCP client starts the tool as a child process:
+
+```json
+{
+  "mcpServers": {
+    "figma": {
+      "command": "figma-mcp-server"
+    }
+  }
+}
+```
+
+Alternatively, download a self-contained `win-x64`, `linux-x64`, or `osx-arm64` archive from the
+matching GitHub Release. A Windows client configuration can then look like this:
 
 ```json
 {
@@ -80,7 +99,7 @@ bridge is loopback-only and must not bind to an external interface.
 
 ## Documentation map
 
-- [Architecture](/architecture) explains transports, lifecycle, state, and security boundaries.
-- [Development](/development) describes the repository layout, build commands, and local checks.
-- [Tool reference](/tools) defines the MCP tool contract.
+- [Architecture](/ARCHITECTURE) explains transports, lifecycle, state, and security boundaries.
+- [Development](/DEVELOPMENT) describes the repository layout, build commands, and local checks.
+- [Tool reference](/TOOLS) defines the MCP tool contract.
 - [Plugin API coverage](/plugin-api-tool-coverage) records supported and deferred Figma API areas.

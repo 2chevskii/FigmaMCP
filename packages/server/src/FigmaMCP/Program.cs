@@ -1,10 +1,8 @@
+using FigmaMCP;
 using FigmaMCP.Bridge;
 using FigmaMCP.Connections;
 using FigmaMCP.Mcp;
 using FigmaMCP.Options;
-
-const string ProductName = "figma-mcp-server";
-const string ProductVersion = "0.2.0";
 
 if (!ServerOptions.TryParse(args, out var parsedOptions, out var error))
 {
@@ -103,7 +101,7 @@ WebApplication BuildApplication(int bridgePort)
     builder
         .Services.AddMcpServer(server =>
         {
-            server.ServerInfo = new() { Name = ProductName, Version = ProductVersion };
+            server.ServerInfo = new() { Name = ProductInfo.Name, Version = ProductInfo.Version };
             server.ServerInstructions =
                 "Call list_figma_connections before document-specific work. "
                 + "Always pass the chosen connection_id. Connection IDs identify live plugin "

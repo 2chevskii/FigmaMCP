@@ -10,6 +10,15 @@ var paths = BuildPaths.Create(rootDirectory);
 
 Task(BuildTargets.Clean).Does(() => CoreTasks.Clean(Context, paths));
 Task(BuildTargets.Tools.Restore).Does(() => CoreTasks.RestoreTools(Context));
+Task(BuildTargets.Version.Calculate).Does(() => VersionTasks.Print(Context, paths));
+
+Task(BuildTargets.Commits.Install).Does(() => CommitTasks.Install(Context, paths));
+Task(BuildTargets.Commits.Check)
+    .IsDependentOn(BuildTargets.Commits.Install)
+    .Does(() => CommitTasks.Check(Context, paths));
+Task(BuildTargets.Commits.InstallHook)
+    .IsDependentOn(BuildTargets.Commits.Install)
+    .Does(() => CommitTasks.InstallHook(Context, paths));
 
 Task(BuildTargets.Docs.Install).Does(() => DocsTasks.Install(Context, paths));
 Task(BuildTargets.Docs.Typecheck)
@@ -60,9 +69,7 @@ Task(BuildTargets.Build)
 Task(BuildTargets.Package.NuGet)
     .IsDependentOn(BuildTargets.Server.Restore)
     .Does(() => PackageTasks.CreateNuGetPackage(Context, paths));
-Task(BuildTargets.Package.Server)
-    .IsDependentOn(BuildTargets.Server.Publish)
-    .Does(() => PackageTasks.CreateServerArchive(Context, paths));
+Task(BuildTargets.Package.Server).Does(() => PackageTasks.CreateServerArchives(Context, paths));
 Task(BuildTargets.Package.Plugin)
     .IsDependentOn(BuildTargets.Plugin.Build)
     .Does(() => PackageTasks.CreatePluginArchive(Context, paths));
@@ -71,10 +78,15 @@ Task(BuildTargets.Package.Release)
     .IsDependentOn(BuildTargets.Package.Server)
     .IsDependentOn(BuildTargets.Package.Plugin);
 
+Task(BuildTargets.Release.Stage)
+    .IsDependentOn(BuildTargets.Commits.Install)
+    .Does(() => ReleaseTasks.Stage(Context, paths));
+Task(BuildTargets.Release.Build)
+    .IsDependentOn(BuildTargets.Release.Stage)
+    .IsDependentOn(BuildTargets.Package.Release);
 Task(BuildTargets.Release.Validate).Does(() => ReleaseTasks.Validate(Context, paths));
 Task(BuildTargets.Release.Prepare)
-    .IsDependentOn(BuildTargets.Release.Validate)
-    .IsDependentOn(BuildTargets.Package.Release)
+    .IsDependentOn(BuildTargets.Release.Build)
     .Does(async () => await ReleaseTasks.CreateOrUpdateDraft(Context, paths));
 Task(BuildTargets.Release.Download)
     .IsDependentOn(BuildTargets.Release.Validate)

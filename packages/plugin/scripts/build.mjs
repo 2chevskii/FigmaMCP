@@ -10,13 +10,25 @@ const UI_SCRIPT_PLACEHOLDER = "<!-- UI_SCRIPT -->";
 const UI_BUNDLE_PATH = `${COMPILED_DIRECTORY}/ui.bundle.js`;
 const watch = process.argv.includes("--watch");
 const execFileAsync = promisify(execFile);
+const packageMetadata = JSON.parse(await readFile("package.json", "utf8"));
+const productVersion = process.env.FIGMA_MCP_VERSION ?? packageMetadata.version;
 
 const encodingPolyfill = await readFile("src/figma-encoding-polyfill.js", "utf8");
 const mainOptions = {
   input: `./${COMPILED_DIRECTORY}/main.js`,
+  transform: {
+    define: {
+      FIGMA_MCP_PRODUCT_VERSION: JSON.stringify(productVersion),
+    },
+  },
 };
 const uiOptions = {
   input: `./${COMPILED_DIRECTORY}/ui.js`,
+  transform: {
+    define: {
+      FIGMA_MCP_PRODUCT_VERSION: JSON.stringify(productVersion),
+    },
+  },
 };
 
 await prepareOutputDirectory();
@@ -29,7 +41,7 @@ if (watch) {
 
 async function prepareOutputDirectory() {
   await mkdir(OUTPUT_DIRECTORY, { recursive: true });
-  await copyManifest();
+  await Promise.all([copyManifest(), writeVersionMetadata()]);
 }
 
 async function buildBundles() {
@@ -116,6 +128,13 @@ async function writeUiHtml(script) {
 
 function copyManifest() {
   return copyFile("manifest.json", `${OUTPUT_DIRECTORY}/manifest.json`);
+}
+
+function writeVersionMetadata() {
+  return writeFile(
+    `${OUTPUT_DIRECTORY}/version.json`,
+    `${JSON.stringify({ version: productVersion }, null, 2)}\n`,
+  );
 }
 
 function startCompilerWatch() {

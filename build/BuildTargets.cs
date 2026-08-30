@@ -8,6 +8,18 @@ static class BuildTargets
         public const string Restore = ":tools:restore";
     }
 
+    public static class Version
+    {
+        public const string Calculate = ":version:calculate";
+    }
+
+    public static class Commits
+    {
+        public const string Install = ":commits:install";
+        public const string Check = ":commits:check";
+        public const string InstallHook = ":commits:hook:install";
+    }
+
     public static class Docs
     {
         public const string Install = ":docs:install";
@@ -45,6 +57,8 @@ static class BuildTargets
 
     public static class Release
     {
+        public const string Stage = ":release:stage";
+        public const string Build = ":release:build";
         public const string Validate = ":release:validate";
         public const string Prepare = ":release:prepare";
         public const string Download = ":release:download";
