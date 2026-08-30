@@ -44,7 +44,9 @@ and limits.
    Keep the Bridge port at `3846`, unless you configure a different port for the server with
    `--port <1-65535>` or the server reports a fallback port on `stderr` at startup.
 
-3. Configure the MCP client to start `figma-mcp-server` over STDIO:
+3. Import the repository's ready-to-use [mcp.json](mcp.json) into an MCP client that accepts
+   `mcpServers` JSON configuration. If the client does not support file import, add the same server
+   definition to its configuration:
 
    ```json
    {
