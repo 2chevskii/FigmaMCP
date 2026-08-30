@@ -411,11 +411,16 @@ static class ReleaseTasks
             throw new CakeException($"Release package '{fileName}' was not found.");
         }
 
-        var connection = new ApiConnection(client.Connection);
-        await using var source = await connection.GetRawStream(
+        var response = await client.Connection.Get<Stream>(
             new Uri(asset.Url),
-            new Dictionary<string, string> { ["Accept"] = ReleaseAssetMediaType }
+            new Dictionary<string, string>(),
+            ReleaseAssetMediaType
         );
+        await using var source =
+            response.Body
+            ?? throw new CakeException(
+                $"Release package '{fileName}' returned no binary content."
+            );
         await using var output = System.IO.File.Create(destination.FullPath);
         await source.CopyToAsync(output);
     }
