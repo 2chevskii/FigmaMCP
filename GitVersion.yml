@@ -1,4 +1,4 @@
-next-version: 1.0.0
+next-version: 1.0.1
 workflow: TrunkBased/preview1
 tag-prefix: "[vV]?"
 semantic-version-format: Strict
