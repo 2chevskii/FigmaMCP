@@ -103,7 +103,7 @@ version in its file name. Publishing that draft
 starts **Finish release**. Its `:release:publish:nuget` and `:release:publish:github-packages` targets
 download the exact packages attached to the published release and send them to the corresponding
 registry. NuGet.org authentication uses Trusted Publishing with a short-lived OIDC credential from
-the protected `package-publishing` environment; no long-lived NuGet API key is stored. Release
+the protected `nuget-org` environment; no long-lived NuGet API key is stored. Release
 targets require GitHub Actions credentials and should normally run only in their workflows.
 
 ## Companion

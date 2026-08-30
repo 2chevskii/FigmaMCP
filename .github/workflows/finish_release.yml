@@ -18,7 +18,7 @@ jobs:
   publish_nuget:
     name: Publish to NuGet.org
     runs-on: ubuntu-24.04
-    environment: package-publishing
+    environment: nuget-org
     permissions:
       contents: read
       id-token: write
@@ -50,7 +50,7 @@ jobs:
   publish_github_packages:
     name: Publish to GitHub Packages
     runs-on: ubuntu-24.04
-    environment: package-publishing
+    environment: nuget-org
     permissions:
       contents: read
       packages: write
