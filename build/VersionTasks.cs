@@ -60,6 +60,14 @@ static class VersionTasks
         context.Information("Product version: {0}", version.SemVer);
         context.Information("Informational version: {0}", version.InformationalVersion);
         context.Information("Commit: {0}", version.Sha);
+
+        var outputPath = context.Argument("version-output", string.Empty);
+        if (!string.IsNullOrWhiteSpace(outputPath))
+        {
+            var outputFile = new FilePath(outputPath).MakeAbsolute(context.Environment);
+            context.EnsureDirectoryExists(outputFile.GetDirectory());
+            System.IO.File.WriteAllText(outputFile.FullPath, version.SemVer);
+        }
     }
 
     public static DotNetMSBuildSettings AddTo(

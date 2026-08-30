@@ -1,8 +1,7 @@
 {
-  "name": "figma-mcp-connector",
+  "name": "@2chevskii/figmamcp-bridge-plugin",
   "version": "1.0.0",
   "description": "Figma MCP connector",
-  "main": "dist/plugin.js",
   "scripts": {
     "build": "npm run compile && npm run bundle",
     "bundle": "node scripts/build.mjs",

@@ -87,9 +87,13 @@ static class ReleaseTasks
         {
             metadata.Package,
             paths.GetNuGetSymbolsPackage(metadata.Version),
-            paths.PluginReleaseArchive,
+            paths.GetPluginReleaseArchive(metadata.Version),
         };
-        assets.AddRange(PackageTasks.ServerReleaseRuntimes.Select(paths.GetServerReleaseArchive));
+        assets.AddRange(
+            PackageTasks.ServerReleaseRuntimes.Select(runtime =>
+                paths.GetServerReleaseArchive(runtime, metadata.Version)
+            )
+        );
 
         foreach (var asset in assets)
         {
