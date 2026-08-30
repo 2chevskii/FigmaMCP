@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a reproducible problem with Figma MCP
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Search existing issues first and use the security policy for vulnerabilities.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - MCP server
+        - Figma Bridge plugin
+        - Documentation
+        - Build or CI
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Provide the Figma MCP version, release tag, or commit SHA.
+      placeholder: v1.2.3 or abc1234
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the operating system, MCP client, and Figma Desktop version when relevant.
+      placeholder: Windows 11, Codex, Figma Desktop 125.x
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest deterministic sequence that reproduces the problem.
+      placeholder: |
+        1. Start the companion with ...
+        2. Connect the plugin with ...
+        3. Call ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste relevant stderr output or stack traces. Remove secrets and personal data.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched for an existing issue that describes this problem.
+          required: true
+        - label: I removed secrets and personal data from the report.
+          required: true
+        - label: This is not a security vulnerability that should be reported privately.
+          required: true
