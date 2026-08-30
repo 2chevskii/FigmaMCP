@@ -24,6 +24,10 @@ static class VersionTasks
             return cachedVersion;
         }
 
+        // GitVersion is pinned in the repository's local tool manifest. Version-aware
+        // targets can be invoked directly, so they cannot rely on another Cake target
+        // having restored the manifest first.
+        CoreTasks.RestoreTools(context);
         var gitVersion = RunGitVersion(context, paths);
 
         cachedVersion = new ProductVersion(
