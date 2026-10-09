@@ -3,13 +3,21 @@ using Cake.Core;
 static class PluginTasks
 {
     public static void Install(ICakeContext context, BuildPaths paths) =>
-        context.NpmCi(settings => settings.FromPath(paths.PluginDirectory));
+        context.NpmCi(settings =>
+            settings.FromPath(paths.PluginDirectory).WithDiagnostics(context)
+        );
 
     public static void Format(ICakeContext context, BuildPaths paths) =>
-        context.NpmRunScript("format:check", settings => settings.FromPath(paths.PluginDirectory));
+        context.NpmRunScript(
+            "format:check",
+            settings => settings.FromPath(paths.PluginDirectory).WithDiagnostics(context)
+        );
 
     public static void Lint(ICakeContext context, BuildPaths paths) =>
-        context.NpmRunScript("lint", settings => settings.FromPath(paths.PluginDirectory));
+        context.NpmRunScript(
+            "lint",
+            settings => settings.FromPath(paths.PluginDirectory).WithDiagnostics(context)
+        );
 
     public static void Test(ICakeContext context, BuildPaths paths)
     {
@@ -17,7 +25,10 @@ static class PluginTasks
         context.CleanDirectory(paths.PluginTestResultsDirectory);
         context.EnsureDirectoryExists(paths.PluginTestReportsDirectory);
         context.EnsureDirectoryExists(paths.PluginCoverageDirectory);
-        context.NpmRunScript("test:coverage", settings => settings.FromPath(paths.PluginDirectory));
+        context.NpmRunScript(
+            "test:coverage",
+            settings => settings.FromPath(paths.PluginDirectory).WithDiagnostics(context)
+        );
     }
 
     public static void Build(ICakeContext context, BuildPaths paths)
@@ -27,7 +38,7 @@ static class PluginTasks
             "build",
             settings =>
             {
-                settings.FromPath(paths.PluginDirectory);
+                settings.FromPath(paths.PluginDirectory).WithDiagnostics(context);
                 settings.EnvironmentVariables = new Dictionary<string, string>
                 {
                     ["FIGMA_MCP_VERSION"] = version.SemVer,
