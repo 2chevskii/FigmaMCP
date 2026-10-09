@@ -51,10 +51,11 @@ validates the VitePress configuration, and `:docs:build` type-checks and generat
 `docs/.vitepress/dist/`.
 
 Publishing a GitHub Release runs `.github/workflows/docs.yml`. The workflow checks out the exact
-release tag, builds the website through `:docs:build`, uploads `docs/.vitepress/dist/` as the GitHub
-Pages artifact, and deploys it to the `github-pages` environment. It supplies the repository-specific
-Pages base path through `DOCS_BASE` and the published tag through `DOCS_VERSION`. The version appears
-in the site navigation and footer. Local builds default to `/` and identify themselves as
+release tag, requests the latest published release tag through the GitHub API, builds the website
+through `:docs:build`, uploads `docs/.vitepress/dist/` as the GitHub Pages artifact, and deploys it to
+the `github-pages` environment. It supplies the repository-specific Pages base path through
+`DOCS_BASE` and the API response through `DOCS_VERSION`. The version appears in the site navigation
+and footer and links to that release. Local builds default to `/` and identify themselves as
 `development` documentation.
 
 Use `--dryrun` to display a target's dependency graph without executing it. Generated packages and
