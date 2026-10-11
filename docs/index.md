@@ -11,7 +11,7 @@ hero:
   actions:
     - theme: brand
       text: Get started
-      link: /DEVELOPMENT
+      link: /INSTALLATION
     - theme: alt
       text: Tool reference
       link: /TOOLS
@@ -63,51 +63,16 @@ The server, plugin, and bridge use explicit typed contracts. Document-specific M
 live `connection_id`, and bridge operations use bounded payloads, a 30-second deadline, and
 idempotent mutation keys where applicable.
 
-## Starting the companion
+## Install and connect
 
-Install the cross-platform .NET tool from NuGet.org:
-
-```shell
-dotnet tool install --global FigmaMCP
-```
-
-Import the ready-to-use [`mcp.json`](https://github.com/2chevskii/FigmaMCP/blob/master/mcp.json) into
-an MCP client that accepts `mcpServers` JSON configuration. If the client does not support file
-import, add the same server definition to its configuration. The MCP client starts the tool as a
-child process:
-
-```json
-{
-  "mcpServers": {
-    "figma": {
-      "command": "figma-mcp-server"
-    }
-  }
-}
-```
-
-Alternatively, download a self-contained `win-x64`, `linux-x64`, or `osx-arm64` archive from the
-matching GitHub Release. A Windows client configuration can then look like this:
-
-```json
-{
-  "mcpServers": {
-    "figma": {
-      "command": "C:\\path\\to\\FigmaMCP.exe"
-    }
-  }
-}
-```
-
-The process listens on `127.0.0.1:3846/bridge` for the plugin by default. If no `--port` is supplied
-and `3846` is occupied, it detects that before Kestrel starts, tries subsequent ports through `65535`,
-and reports the selected fallback on `stderr`. Pass `--port <1-65535>` to use one specific bridge
-port; an explicit port is never changed. Set the Bridge plugin to the port the server selected. The
-bridge is loopback-only and must not bind to an external interface.
+Install the companion and Bridge plugin, then connect your MCP client using the
+[installation guide](/INSTALLATION). The client starts the companion over STDIO, and the plugin
+connects to its local Bridge endpoint.
 
 ## Documentation map
 
 - [Architecture](/ARCHITECTURE) explains transports, lifecycle, state, and security boundaries.
+- [Installation](/INSTALLATION) walks through installing the companion and connecting the plugin and MCP client.
 - [Development](/DEVELOPMENT) describes the repository layout, build commands, and local checks.
 - [Tool reference](/TOOLS) defines the MCP tool contract.
 - [Plugin API coverage](/plugin-api-tool-coverage) records supported and deferred Figma API areas.
