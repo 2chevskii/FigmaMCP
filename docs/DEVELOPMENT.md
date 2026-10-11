@@ -80,7 +80,7 @@ Pull requests from forks follow the same flow. Pull request titles are not versi
 flowchart LR
     branch[short-lived branch or fork] -->|pull request| checks[CI: commits, tests, builds]
     checks -->|squash merge| master[master]
-    master -->|manual Start release| version[validate commits and calculate version]
+    master -->|manual Start release| version[calculate version]
     version --> tag[annotated vX.Y.Z tag]
     tag --> draft[draft GitHub release with exact assets]
     draft -->|maintainer publishes draft| published[published GitHub Release]
@@ -101,12 +101,14 @@ commits since the latest release tag:
 | Any conventional type with `!`, or a `BREAKING CHANGE` footer                 | major          |
 | `build:`, `chore:`, `ci:`, `docs:`, `refactor:`, `revert:`, `style:`, `test:` | none           |
 
-Install the local `commit-msg` hook with `:commits:hook:install`. The hook and the CI
-`:commits:check` target both use the repository-pinned commitlint configuration.
+Install the local `commit-msg` hook with `:commits:hook:install`. The hook and the
+`:commits:check` target both use the repository-pinned commitlint configuration. CI runs
+commitlint only for pull requests; pushes to `master` and release workflows skip it.
+Before squash merging, check the final commit message even when the PR's commits passed CI.
 
 GitHub Actions delegates release scenarios to Cake. Run the **Start release** workflow manually on
 `master`; `:release:prepare` verifies that the checkout is the exact clean `origin/master` commit,
-validates its release commit range, computes the next version, creates and pushes the annotated tag,
+computes the next version, creates and pushes the annotated tag,
 builds the NuGet package and symbols, three self-contained server archives, and the plugin archive,
 then creates or updates a draft GitHub release. Every server and plugin archive includes the product
 version in its file name. Publishing that draft

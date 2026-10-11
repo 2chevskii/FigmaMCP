@@ -15,13 +15,6 @@ static class CommitTasks
         RunCommitlint(context, paths, from, to, messageFile);
     }
 
-    public static void CheckRange(
-        ICakeContext context,
-        BuildPaths paths,
-        string? from,
-        string to
-    ) => RunCommitlint(context, paths, from ?? string.Empty, to, string.Empty);
-
     private static void RunCommitlint(
         ICakeContext context,
         BuildPaths paths,

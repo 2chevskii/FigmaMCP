@@ -79,7 +79,6 @@ Task(BuildTargets.Package.Release)
     .IsDependentOn(BuildTargets.Package.Plugin);
 
 Task(BuildTargets.Release.Stage)
-    .IsDependentOn(BuildTargets.Commits.Install)
     .Does(() => ReleaseTasks.Stage(Context, paths));
 Task(BuildTargets.Release.Build)
     .IsDependentOn(BuildTargets.Release.Stage)
