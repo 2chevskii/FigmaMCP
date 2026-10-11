@@ -31,7 +31,8 @@ Install the repository `commit-msg` hook once after cloning:
 Every commit must follow Conventional Commits. Use `feat:` for a feature, `fix:` for a correction,
 and add `!` before the colon for a breaking change. The remaining conventional types such as `docs:`,
 `test:`, `build:`, and `ci:` are valid but do not advance the product version. CI validates the full
-commit range independently of the local hook.
+pull request commit range independently of the local hook. Pushes to `master` and release workflows
+skip commitlint.
 
 ## Pull request
 
