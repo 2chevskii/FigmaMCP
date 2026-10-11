@@ -42,8 +42,6 @@ static class ReleaseTasks
         else
         {
             var previousTag = FindLatestReleaseTag(context, paths);
-            CommitTasks.CheckRange(context, paths, previousTag, "HEAD");
-
             var calculated = VersionTasks.Calculate(context, paths);
             version = calculated.MajorMinorPatch;
             if (previousTag is not null && ParseReleaseTag(previousTag) == version)

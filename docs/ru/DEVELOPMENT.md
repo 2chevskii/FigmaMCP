@@ -56,7 +56,7 @@ flowchart TD
 flowchart LR
     branch[короткоживущая ветка или fork] -->|pull request| checks[CI: коммиты, тесты, сборки]
     checks -->|squash merge| master[master]
-    master -->|ручной Start release| version[проверка коммитов и расчёт версии]
+    master -->|ручной Start release| version[расчёт версии]
     version --> tag[аннотированный тег vX.Y.Z]
     tag --> draft[черновик GitHub Release с точными файлами]
     draft -->|публикация сопровождающим| published[опубликованный GitHub Release]
@@ -75,7 +75,9 @@ GitVersion рассчитывает версию продукта на осно�
 
 Установите локальный hook `commit-msg` целью `:commits:hook:install`. Hook и цель CI `:commits:check` используют закреплённую в репозитории конфигурацию commitlint.
 
-GitHub Actions передаёт сценарии выпуска Cake. Вручную запустите workflow **Start release** на ветке `master`: цель `:release:prepare` проверяет, что checkout соответствует точному чистому коммиту `origin/master`, проверяет диапазон коммитов, вычисляет следующую версию, создаёт и отправляет аннотированный тег, собирает NuGet-пакет с символами, три автономных архива сервера и архив плагина, затем создаёт или обновляет черновик GitHub Release. Версия включена в имена архивов сервера и плагина. Публикация черновика запускает **Finish release**. Цели `:release:publish:nuget` и `:release:publish:github-packages` загружают точные пакеты из опубликованного выпуска и отправляют их в соответствующие реестры. Для NuGet.org используется Trusted Publishing с краткоживущими OIDC-учётными данными защищённого окружения `nuget-org`; постоянный ключ NuGet API не хранится. Целям выпуска нужны учётные данные GitHub Actions, поэтому обычно они запускаются только в workflow.
+CI запускает commitlint только для pull request; push в `master` и релизные workflow пропускают эту проверку. Перед squash merge проверьте итоговое сообщение коммита, даже если коммиты PR уже прошли CI.
+
+GitHub Actions передаёт сценарии выпуска Cake. Вручную запустите workflow **Start release** на ветке `master`: цель `:release:prepare` проверяет, что checkout соответствует точному чистому коммиту `origin/master`, вычисляет следующую версию, создаёт и отправляет аннотированный тег, собирает NuGet-пакет с символами, три автономных архива сервера и архив плагина, затем создаёт или обновляет черновик GitHub Release. Версия включена в имена архивов сервера и плагина. Публикация черновика запускает **Finish release**. Цели `:release:publish:nuget` и `:release:publish:github-packages` загружают точные пакеты из опубликованного выпуска и отправляют их в соответствующие реестры. Для NuGet.org используется Trusted Publishing с краткоживущими OIDC-учётными данными защищённого окружения `nuget-org`; постоянный ключ NuGet API не хранится. Целям выпуска нужны учётные данные GitHub Actions, поэтому обычно они запускаются только в workflow.
 
 ## Сервер-компаньон
 
