@@ -4,7 +4,7 @@ using Cake.Core.IO;
 static class CommitTasks
 {
     public static void Install(ICakeContext context, BuildPaths paths) =>
-        context.NpmCi(settings => settings.FromPath(paths.RootDirectory));
+        context.NpmCi(settings => settings.FromPath(paths.RootDirectory).WithDiagnostics(context));
 
     public static void Check(ICakeContext context, BuildPaths paths)
     {
@@ -34,7 +34,7 @@ static class CommitTasks
             "commitlint",
             settings =>
             {
-                settings.FromPath(paths.RootDirectory);
+                settings.FromPath(paths.RootDirectory).WithDiagnostics(context);
                 settings.Arguments.Add("--verbose");
                 if (!string.IsNullOrWhiteSpace(messageFile))
                 {

@@ -118,7 +118,7 @@ static class ServerTasks
             InspectorPackage,
             settings =>
             {
-                settings.FromPath(paths.RootDirectory);
+                settings.FromPath(paths.RootDirectory).WithDiagnostics(context);
                 settings.EnvironmentVariables = new Dictionary<string, string>
                 {
                     ["npm_config_yes"] = "true",

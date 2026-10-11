@@ -60,6 +60,10 @@ in the site navigation and footer. Local builds default to `/` and identify them
 Use `--dryrun` to display a target's dependency graph without executing it. Generated packages and
 archives are written beneath `artifacts/`.
 
+All npm targets stream standard output and standard error as they run. If npm fails, the Cake
+exception includes the working directory, exit code, and captured output. Even with
+`--verbosity Quiet`, npm error messages remain enabled.
+
 ## Versioning and releases
 
 The repository follows trunk-based development. `master` is the only long-lived branch; work from a
