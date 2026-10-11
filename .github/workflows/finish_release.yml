@@ -18,7 +18,9 @@ jobs:
   publish_nuget:
     name: Publish to NuGet.org
     runs-on: ubuntu-24.04
-    environment: nuget-org
+    environment:
+      name: nuget-org
+      url: https://www.nuget.org/packages/FigmaMCP
     permissions:
       contents: read
       id-token: write
@@ -50,7 +52,9 @@ jobs:
   publish_github_packages:
     name: Publish to GitHub Packages
     runs-on: ubuntu-24.04
-    environment: nuget-org
+    environment:
+      name: github-packages
+      url: https://github.com/users/2chevskii/packages/nuget/package/FigmaMCP
     permissions:
       contents: read
       packages: write
