@@ -146,7 +146,11 @@ export default defineConfig({
               modal: {
                 noResultsText: "No results found",
                 resetButtonTitle: "Clear search",
-                footer: { selectText: "to select", navigateText: "to navigate", closeText: "to close" },
+                footer: {
+                  selectText: "to select",
+                  navigateText: "to navigate",
+                  closeText: "to close",
+                },
               },
             },
           },

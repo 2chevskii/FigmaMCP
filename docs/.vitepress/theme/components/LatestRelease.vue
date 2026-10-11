@@ -32,9 +32,12 @@ const pluginArchives = computed(() =>
 
 onMounted(async () => {
   try {
-    const response = await fetch("https://api.github.com/repos/2chevskii/FigmaMCP/releases/latest", {
-      headers: { Accept: "application/vnd.github+json" },
-    });
+    const response = await fetch(
+      "https://api.github.com/repos/2chevskii/FigmaMCP/releases/latest",
+      {
+        headers: { Accept: "application/vnd.github+json" },
+      },
+    );
 
     if (!response.ok) {
       throw new Error(`GitHub API request failed with status ${response.status}`);
@@ -51,18 +54,39 @@ onMounted(async () => {
   <section class="latest-release" aria-live="polite">
     <p v-if="release">
       {{ isRussian ? "Последний выпуск:" : "Latest release:" }}
-      <a :href="release.html_url"><strong>{{ release.tag_name }}</strong></a>
+      <a :href="release.html_url"
+        ><strong>{{ release.tag_name }}</strong></a
+      >
     </p>
     <p v-else-if="error">
-      {{ isRussian ? "Не удалось загрузить последний выпуск с GitHub. Откройте" : "Could not load the latest release from GitHub. Visit the" }}
-      <a href="https://github.com/2chevskii/FigmaMCP/releases/latest">{{ isRussian ? "страницу последнего выпуска" : "latest release page" }}</a>.
+      {{
+        isRussian
+          ? "Не удалось загрузить последний выпуск с GitHub. Откройте"
+          : "Could not load the latest release from GitHub. Visit the"
+      }}
+      <a href="https://github.com/2chevskii/FigmaMCP/releases/latest">{{
+        isRussian ? "страницу последнего выпуска" : "latest release page"
+      }}</a
+      >.
     </p>
-    <p v-else>{{ isRussian ? "Загружаем данные о последнем выпуске с GitHub…" : "Loading latest release from GitHub…" }}</p>
+    <p v-else>
+      {{
+        isRussian
+          ? "Загружаем данные о последнем выпуске с GitHub…"
+          : "Loading latest release from GitHub…"
+      }}
+    </p>
 
     <template v-if="release && packageVersion">
       <h3>{{ isRussian ? "Запуск через" : "Run with" }} <code>dnx</code></h3>
       <pre><code>dnx FigmaMCP@{{ packageVersion }}</code></pre>
-      <p>{{ isRussian ? "Укажите эту версию выпуска в конфигурации MCP-клиента:" : "Configure an MCP client to start that exact release:" }}</p>
+      <p>
+        {{
+          isRussian
+            ? "Укажите эту версию выпуска в конфигурации MCP-клиента:"
+            : "Configure an MCP client to start that exact release:"
+        }}
+      </p>
       <pre><code>{
   "mcpServers": {
     "figma": {
@@ -72,7 +96,9 @@ onMounted(async () => {
   }
 }</code></pre>
 
-      <h3>{{ isRussian ? "Установка глобального инструмента .NET" : "Install as a global .NET tool" }}</h3>
+      <h3>
+        {{ isRussian ? "Установка глобального инструмента .NET" : "Install as a global .NET tool" }}
+      </h3>
       <pre><code>dotnet tool install --global FigmaMCP --version {{ packageVersion }}</code></pre>
 
       <h3>{{ isRussian ? "Скачать архивы выпуска" : "Download release archives" }}</h3>
