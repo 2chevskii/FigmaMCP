@@ -1,6 +1,10 @@
 {
   "name": "figma-mcp-repository-tools",
   "private": true,
+  "workspaces": [
+    "docs",
+    "packages/plugin"
+  ],
   "scripts": {
     "commitlint": "commitlint"
   },

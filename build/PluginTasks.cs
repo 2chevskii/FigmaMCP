@@ -4,7 +4,7 @@ static class PluginTasks
 {
     public static void Install(ICakeContext context, BuildPaths paths) =>
         context.NpmCi(settings =>
-            settings.FromPath(paths.PluginDirectory).WithDiagnostics(context)
+            settings.FromPath(paths.RootDirectory).WithDiagnostics(context)
         );
 
     public static void Format(ICakeContext context, BuildPaths paths) =>

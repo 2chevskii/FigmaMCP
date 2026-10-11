@@ -46,8 +46,13 @@ and both runtime components.
 
 On Linux and macOS, replace `./build.ps1` with `bash ./build.sh`.
 
-The docs targets install the locked npm dependencies from `docs/package-lock.json`. `:docs:typecheck`
-validates the VitePress configuration, and `:docs:build` type-checks and generates the static site in
+The root package defines `docs` and `packages/plugin` as npm workspaces. All npm install targets
+run `npm ci` from the repository root using the shared `package-lock.json`; workspace-local lockfiles
+are not used. After changing a workspace's dependencies, run `npm install --package-lock-only` from
+the root and commit the updated root lockfile. npm may hoist dependencies into the root `node_modules`,
+so build scripts must resolve packages rather than assume a workspace-local installation.
+
+`:docs:typecheck` validates the VitePress configuration, and `:docs:build` type-checks and generates the static site in
 `docs/.vitepress/dist/`.
 
 Publishing a GitHub Release runs `.github/workflows/docs.yml`. The workflow checks out the exact
