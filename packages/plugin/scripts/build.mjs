@@ -152,5 +152,5 @@ function compile() {
 }
 
 function getTscPath() {
-  return fileURLToPath(new URL("../node_modules/@typescript/native/bin/tsc", import.meta.url));
+  return fileURLToPath(new URL("bin/tsc", import.meta.resolve("@typescript/native/package.json")));
 }
