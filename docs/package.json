@@ -10,9 +10,9 @@
     "typecheck": "tsc"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.13.6",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitepress": "^2.0.0-alpha.19",
+    "vitepress": "^2.0.0-alpha.20",
     "vitepress-plugin-mermaid-diagram": "^0.3.2"
   }
 }

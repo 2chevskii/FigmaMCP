@@ -46,8 +46,13 @@ and both runtime components.
 
 On Linux and macOS, replace `./build.ps1` with `bash ./build.sh`.
 
-The docs targets install the locked npm dependencies from `docs/package-lock.json`. `:docs:typecheck`
-validates the VitePress configuration, and `:docs:build` type-checks and generates the static site in
+The root package defines `docs` and `packages/plugin` as npm workspaces. All npm install targets
+run `npm ci` from the repository root using the shared `package-lock.json`; workspace-local lockfiles
+are not used. After changing a workspace's dependencies, run `npm install --package-lock-only` from
+the root and commit the updated root lockfile. npm may hoist dependencies into the root `node_modules`,
+so build scripts must resolve packages rather than assume a workspace-local installation.
+
+`:docs:typecheck` validates the VitePress configuration, and `:docs:build` type-checks and generates the static site in
 `docs/.vitepress/dist/`.
 
 Publishing a GitHub Release runs `.github/workflows/docs.yml`. The workflow checks out the exact
@@ -60,6 +65,10 @@ and footer and links to that release. Local builds default to `/` and identify t
 
 Use `--dryrun` to display a target's dependency graph without executing it. Generated packages and
 archives are written beneath `artifacts/`.
+
+All npm targets stream standard output and standard error as they run. If npm fails, the Cake
+exception includes the working directory, exit code, and captured output. Even with
+`--verbosity Quiet`, npm error messages remain enabled.
 
 ## Versioning and releases
 
