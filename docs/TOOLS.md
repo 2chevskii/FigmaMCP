@@ -28,6 +28,41 @@ permission-gated APIs can vary by Figma runtime, account, and file.
 - Figma Plugin API validation still applies. For example, a node cannot be reparented out of an
   instance, text fonts must exist, and Starter-plan page/mode limits remain enforced by Figma.
 
+## Server information
+
+`get_server_info` is a read-only server-level tool with no inputs or `connection_id`. Call it after
+MCP initialization, even with no plugin connected, to find the exact Bridge port for this session:
+
+```json
+{
+  "server_instance_id": "11111111-1111-4111-8111-111111111111",
+  "process_id": 1234,
+  "product_version": "1.2.3+abcdef",
+  "started_at": "2026-10-15T04:00:00+00:00",
+  "active_plugin_connections": 0,
+  "bridge": {
+    "host": "127.0.0.1",
+    "port": 3847,
+    "websocket_url": "ws://127.0.0.1:3847/bridge"
+  }
+}
+```
+
+The result has a fixed set of scalar fields and one Bridge object, with no connection lists or
+machine-data collections. `server_instance_id` is a lowercase canonical UUID generated once for the
+backend lifetime; `process_id`, `product_version`, and UTC ISO-8601 `started_at` identify its process,
+build (including informational version metadata), and process startup time. These fields remain
+stable across calls. `active_plugin_connections` is a nonnegative snapshot of the same registry used
+by `list_figma_connections` and changes as plugins connect or disconnect.
+
+`bridge.host`, `bridge.port` (1–65535), and `bridge.websocket_url` come from the successfully bound
+listener, including an automatically selected fallback port or explicit `--port`. The tool waits
+for listener startup if necessary. Enter `bridge.port` in the Figma Bridge plugin. This identity,
+listener, and registry describe the backend owning the Figma connections, rather than a client or
+any future separate MCP frontend. Environment variables, credentials, filesystem paths, and unrelated
+machine information are excluded. The result includes MCP structured content and an output schema;
+the tool advertises `readOnlyHint: true`, `destructiveHint: false`, and `openWorldHint: false`.
+
 ## Connection and document context
 
 | Tool                          | Input object                                                                   |

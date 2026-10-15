@@ -42,7 +42,9 @@ Open the Bridge plugin in the Figma document you want to use. The plugin connect
 `127.0.0.1:3846` by default. If the server selects a fallback port or is started with
 `--port <1-65535>`, enter that port in the plugin.
 
-Call `list_figma_connections`, then pass the returned `connection_id` to document-specific tools.
+Call `get_server_info` without arguments to find this instance's actual `bridge.port`, even with no
+plugin connected. Enter that port in Figma Bridge. Call `list_figma_connections`, then pass the
+returned `connection_id` to document-specific tools.
 
 ## Update or uninstall
 

@@ -45,6 +45,9 @@ Keep the plugin Bridge port at `3846` unless you set another server port. The co
 `127.0.0.1:3846/bridge` by default. If that port is occupied and no explicit port was set, the server
 selects a subsequent available port and reports it on `stderr`; use that port in the plugin settings.
 An explicit `--port <1-65535>` value is never changed.
+After the MCP client starts, call `get_server_info` without arguments to read the actual
+`bridge.port` and `bridge.websocket_url`, even before a plugin connects. Enter the returned port
+in the plugin; this also identifies the correct instance when several MCP clients are running.
 
 ## Connect an MCP client
 

@@ -62,6 +62,8 @@ and limits.
    }
    ```
 
+Call `get_server_info` without arguments to find this instance's actual `bridge.port`, even before
+the plugin connects. Enter that port in Figma Bridge when several clients use different ports.
 After the plugin connects, call `list_figma_connections` and pass the returned `connection_id` to
 document-specific tools.
 
