@@ -1,6 +1,7 @@
 using FigmaMCP;
 using FigmaMCP.Bridge;
 using FigmaMCP.Connections;
+using FigmaMCP.Diagnostics;
 using FigmaMCP.Mcp;
 using FigmaMCP.Options;
 
@@ -98,18 +99,22 @@ WebApplication BuildApplication(int bridgePort)
     builder.Logging.ClearProviders();
     builder.Logging.AddConsole(console => console.LogToStandardErrorThreshold = LogLevel.Trace);
     builder.Services.AddSingleton<PluginConnectionRegistry>();
+    builder.Services.AddSingleton<ServerInfoProvider>();
     builder
         .Services.AddMcpServer(server =>
         {
             server.ServerInfo = new() { Name = ProductInfo.Name, Version = ProductInfo.Version };
             server.ServerInstructions =
-                "Call list_figma_connections before document-specific work. "
+                "Call get_server_info to find this server's Bridge port and WebSocket URL, "
+                + "including when no plugin is connected. "
+                + "Call list_figma_connections before document-specific work. "
                 + "Always pass the chosen connection_id. Connection IDs identify live plugin "
                 + "invocations, not permanent Figma files. A missing connection means the plugin "
                 + "must be opened or reconnected.";
         })
         .WithStdioServerTransport()
-        .WithTools<FigmaTools>();
+        .WithTools<FigmaTools>()
+        .WithTools<ServerTools>();
 
     var app = builder.Build();
     app.UseWebSockets();

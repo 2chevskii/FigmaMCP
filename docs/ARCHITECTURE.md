@@ -64,6 +64,15 @@ The process has two transport roles:
 A `connection_id` identifies a plugin invocation rather than a persistent Figma file. A connection
 replacement uses compare-and-swap so a stale socket cannot remove the active replacement.
 
+## Server diagnostics
+
+The read-only `get_server_info` MCP tool requires no plugin or `connection_id`. A singleton tied to
+the backend's listener and connection registry reports its instance UUID, process ID, product
+version, UTC process startup time, active connection count, and actual Bridge address. Calls wait
+for application startup and read Kestrel's bound address, so fallback ports are discoverable without
+shell access or startup logs. The fixed response excludes environment variables, credentials, and
+unrelated machine information; see the [tool reference](/TOOLS#server-information).
+
 ## Bridge protocol
 
 The bridge wire format has these properties:

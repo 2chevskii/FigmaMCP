@@ -153,6 +153,11 @@ selected fallback to `stderr`. Pass
 `--port <1-65535>` in the MCP server command to use a fixed bridge port; explicit ports are never
 changed.
 
+Call `get_server_info` through MCP to query the actual bound Bridge port and WebSocket URL without
+reading `stderr`, including with zero connected plugins. To validate fallback discovery, occupy
+`3846`, start the server without `--port`, and check that the returned URL accepts a Bridge connection.
+Also check a fixed `--port` and the connection count before, during, and after a plugin connection.
+
 ## Bridge plugin
 
 The plugin uses the MessagePack bridge protocol and stores only the local bridge port. Its root-build targets install its locked npm dependencies as needed:
