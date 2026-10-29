@@ -145,18 +145,21 @@ removed by artifact transfer, and configures the coverage collector to resolve t
 and retain assemblies whose source checkout is intentionally absent. Local test runs continue to use
 `:server:test` and `dotnet test`.
 
-During development, start the STDIO server through an MCP client or a local STDIO harness. Do not
-write diagnostics to `stdout`: that stream belongs to the MCP protocol. The local bridge listens on
-`127.0.0.1:3846` for the plugin by default. If no `--port` is supplied and that port is occupied, the
-server detects this before Kestrel starts, then tries subsequent ports through `65535` and writes the
-selected fallback to `stderr`. Pass
-`--port <1-65535>` in the MCP server command to use a fixed bridge port; explicit ports are never
-changed.
+During development, start a frontend through an MCP client or STDIO harness. Frontends share
+one detached backend per user and fixed Bridge port (default 3846). Diagnostics use stderr.
+No automatic port fallback occurs. get_server_info returns backend identity and its actual
+listener; all clients sharing a port report the same instance.
 
-Call `get_server_info` through MCP to query the actual bound Bridge port and WebSocket URL without
-reading `stderr`, including with zero connected plugins. To validate fallback discovery, occupy
-`3846`, start the server without `--port`, and check that the returned URL accepts a Bridge connection.
-Also check a fixed `--port` and the connection count before, during, and after a plugin connection.
+Set --idle-timeout-seconds or FIGMA_MCP_IDLE_TIMEOUT_SECONDS (CLI wins, default 60,
+range 1..86400). The first launcher determines backend policy. It exits only after the
+configured interval without frontends, plugins or dispatched operations. Exact product
+versions must match; close clients and plugins before rebuilding/updating a running backend.
+
+Process tests use the real server from build output. :server:publish-tests includes a
+self-contained companion/ fixture next to the test executable. CI builds and runs these
+artifacts on Windows, Linux and macOS. IPC tests cover concurrent launch, shared registry,
+first-client process-tree exit, backend crash recovery without replay, version mismatch,
+port conflict and idle shutdown.
 
 ## Bridge plugin
 
@@ -173,7 +176,7 @@ Import `packages/plugin/dist/manifest.json` as a development plugin in Figma Des
 bundled `icon.png` with the distribution; it is the 128 x 128 Community icon to upload in Figma's
 publishing flow (the plugin manifest does not define Community listing artwork). Keep the
 bridge port at its default, `3846`, unless the MCP server was started with a different `--port` value
-or reported a fallback port on `stderr`; the plugin derives `ws://127.0.0.1:<bridge-port>/bridge`
+; the plugin derives `ws://127.0.0.1:<bridge-port>/bridge`
 without query parameters.
 
 ## Local scenario validation
@@ -185,3 +188,7 @@ Validate this sequence in Figma Desktop:
 3. `list_figma_connections` returns the plugin connection.
 4. A tool with the selected `connection_id` receives a response from Figma through the bridge.
 5. Closing the plugin completes a pending request with an error and removes the connection from the list.
+
+Validate two MCP clients against the same plugin: both see the same connection; closing
+one client preserves the other. Kill the test backend and verify the surviving MCP session
+recovers, the plugin reconnects, and uncertain mutations are not repeated automatically.

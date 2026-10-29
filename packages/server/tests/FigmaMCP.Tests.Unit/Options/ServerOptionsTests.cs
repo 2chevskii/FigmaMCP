@@ -4,6 +4,31 @@ namespace FigmaMCP.Tests.Unit.Options;
 
 public sealed class ServerOptionsTests
 {
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("86401")]
+    [InlineData("abc")]
+    public void RejectsInvalidIdleTimeout(string value)
+    {
+        Assert.False(ServerOptions.TryParse(["--idle-timeout-seconds", value], out _, out _));
+    }
+
+    [Fact]
+    public void AcceptsCombinedOptionsAndRejectsDuplicates()
+    {
+        Assert.True(
+            ServerOptions.TryParse(
+                ["--idle-timeout-seconds", "120", "--port", "4000"],
+                out var options,
+                out _
+            )
+        );
+        Assert.Equal(120, options!.IdleTimeoutSeconds);
+        Assert.Equal(4000, options.Port);
+        Assert.False(ServerOptions.TryParse(["--port", "4000", "--port", "4001"], out _, out _));
+    }
+
     [Fact]
     public void TryParseUsesTheDefaultPortWhenNoArgumentsAreSupplied()
     {

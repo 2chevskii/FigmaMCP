@@ -2,8 +2,9 @@
 
 ## Project
 
-`figma-mcp` is a local Figma companion. An MCP client starts one .NET process and communicates with
-it through STDIO. The process also serves the loopback WebSocket `/bridge` for the Figma Bridge plugin.
+`figma-mcp` is a local Figma companion. An MCP client starts a .NET frontend and communicates with it through STDIO. Frontends share an
+automatically started backend per OS user and Bridge port; that backend owns the loopback WebSocket
+`/bridge`, connection registry and pending RPCs. See docs/decisions/0001-shared-companion.md.
 
 Change the Bridge plugin only within the scope explicitly requested by the user. Do not change its
 source, manifest, UI, settings, or `figma-mcp-bridge.v2` protocol without explicit direction.
@@ -37,7 +38,10 @@ existing code.
 - The bridge uses WebSocket/MessagePack `figma-mcp-bridge.v2` at `127.0.0.1:3846/bridge`; do not bind
   it to an external interface.
 - Every document-specific MCP tool requires a live explicit `connection_id`.
-- The plugin connection registry and pending RPCs are in memory. Requests for one connection run
+- Frontend/backend versions must match exactly. Fixed Bridge ports never fall back automatically.
+- Backend idle timeout defaults to 60 seconds without clients, plugins or dispatched operations.
+- IPC loss never automatically replays document calls; preserve frontend MCP sessions during recovery.
+- The plugin connection registry and pending RPCs are in backend memory. Requests for one connection run
   sequentially, and a stale socket cannot remove a replacement connection.
 - Preserve bounded typed payloads, size limits, a 30-second bridge RPC deadline, and idempotent
   mutations.

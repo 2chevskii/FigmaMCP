@@ -323,11 +323,19 @@ public static class BridgeEndpoint
     {
         if (socket.State == WebSocketState.Open)
         {
-            await socket.CloseAsync(
-                WebSocketCloseStatus.PolicyViolation,
-                "bridge_closed",
-                CancellationToken.None
-            );
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            try
+            {
+                await socket.CloseAsync(
+                    WebSocketCloseStatus.PolicyViolation,
+                    "bridge_closed",
+                    timeout.Token
+                );
+            }
+            catch (Exception e) when (e is OperationCanceledException or WebSocketException)
+            {
+                socket.Abort();
+            }
         }
     }
 }

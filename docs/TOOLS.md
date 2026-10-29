@@ -56,10 +56,10 @@ stable across calls. `active_plugin_connections` is a nonnegative snapshot of th
 by `list_figma_connections` and changes as plugins connect or disconnect.
 
 `bridge.host`, `bridge.port` (1–65535), and `bridge.websocket_url` come from the successfully bound
-listener, including an automatically selected fallback port or explicit `--port`. The tool waits
+listener, using the fixed default port or explicit `--port`. The tool waits
 for listener startup if necessary. Enter `bridge.port` in the Figma Bridge plugin. This identity,
 listener, and registry describe the backend owning the Figma connections, rather than a client or
-any future separate MCP frontend. Environment variables, credentials, filesystem paths, and unrelated
+the separate MCP frontend. Environment variables, credentials, filesystem paths, and unrelated
 machine information are excluded. The result includes MCP structured content and an output schema;
 the tool advertises `readOnlyHint: true`, `destructiveHint: false`, and `openWorldHint: false`.
 
@@ -281,3 +281,13 @@ The connector does not expose raw JavaScript/eval, arbitrary `fetch`, plugin UI 
 Slides, Buzz, codegen callbacks, parameter callbacks, or text-review mode. Those APIs either do not
 operate on a Design document, belong to the connector implementation itself, require a distinct
 plugin invocation mode, or would create an unsafe general-purpose execution/network surface.
+
+## Shared backend failures
+
+All clients for the same user and port see the same backend identity and connections.
+Backend loss preserves the MCP session but fails pending calls with `backend_connection_lost`.
+New calls while recovering receive `backend_unavailable`; overload before dispatch returns
+`backend_busy`. Version conflicts return `backend_version_mismatch`, and invalid internal
+messages return `backend_protocol_error`. Server-level tools return MCP tool errors; document
+tools retain their structured error format. No operation is replayed automatically.
+An interrupted mutation may have completed: inspect the document before retrying.

@@ -42,9 +42,7 @@ the extracted `manifest.json` as a development plugin, then open the plugin in t
 to use.
 
 Keep the plugin Bridge port at `3846` unless you set another server port. The companion listens on
-`127.0.0.1:3846/bridge` by default. If that port is occupied and no explicit port was set, the server
-selects a subsequent available port and reports it on `stderr`; use that port in the plugin settings.
-An explicit `--port <1-65535>` value is never changed.
+`127.0.0.1:3846/bridge` by default. If that port is occupied by another service, startup fails; choose an explicit --port and set the same value in the plugin. An explicit `--port <1-65535>` value is never changed.
 After the MCP client starts, call `get_server_info` without arguments to read the actual
 `bridge.port` and `bridge.websocket_url`, even before a plugin connects. Enter the returned port
 in the plugin; this also identifies the correct instance when several MCP clients are running.
@@ -88,3 +86,12 @@ available operations and their requirements.
 
 To update a .NET tool installation, run `dotnet tool update --global FigmaMCP`. For release archives,
 use the latest versioned asset links above and update the executable path in the MCP client if needed.
+
+## Shared backend and updates
+
+MCP clients share a backend by OS user and port, with exact matching product versions.
+The backend survives closing individual chats. It exits after 60 seconds without clients,
+plugins or operations. Set `--idle-timeout-seconds` or `FIGMA_MCP_IDLE_TIMEOUT_SECONDS`
+(1–86400, CLI takes precedence); an existing backend retains its original timeout.
+Before updating, close old clients and plugins and wait for idle shutdown. A running
+backend of another version produces a clear error and is not replaced automatically.
