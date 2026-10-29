@@ -75,6 +75,22 @@ static class ServerTasks
                     .AddTo(VersionTasks.Calculate(context, paths)),
             }
         );
+        context.DotNetPublish(
+            paths.ServerProject.ToString(),
+            new DotNetPublishSettings
+            {
+                Configuration = context.Argument("configuration", "Release"),
+                NoRestore = true,
+                Runtime = runtime,
+                SelfContained = true,
+                OutputDirectory = outputDirectory.Combine("companion"),
+                WorkingDirectory = paths.ServerDirectory,
+                MSBuildSettings = new DotNetMSBuildSettings()
+                    .WithProperty("PublishSingleFile", "true")
+                    .WithProperty("IncludeNativeLibrariesForSelfExtract", "true")
+                    .AddTo(VersionTasks.Calculate(context, paths)),
+            }
+        );
     }
 
     private static void RunTests(ICakeContext context, BuildPaths paths)
