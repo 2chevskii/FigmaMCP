@@ -7,12 +7,12 @@
 [![License](https://img.shields.io/github/license/2chevskii/FigmaMCP)](LICENSE)
 
 Figma MCP is a local companion for an open Figma document through the Figma Bridge plugin. The MCP
-client starts a .NET process and communicates with it over STDIO, while the plugin connects to the
-same process through a loopback WebSocket.
+client starts a .NET process and communicates with it over STDIO, while an automatically started backend shared by user and Bridge port serves the plugin
+through a loopback WebSocket.
 
 ```mermaid
 flowchart LR
-    client[MCP client] <-->|stdin / stdout| companion[Local MCP companion]
+    client[MCP client] <-->|stdin / stdout| frontend[MCP frontend] <-->|private IPC| companion[Shared backend]
     companion <-->|WebSocket: /bridge| plugin[Figma Bridge plugin]
 ```
 
@@ -46,7 +46,7 @@ and limits.
 2. Download `figma-mcp-plugin.<version>.zip` from the matching GitHub Release, extract it, and import its
    `manifest.json` in Figma Desktop as a development plugin. Open the plugin in the desired document.
    Keep the Bridge port at `3846`, unless you configure a different port for the server with
-   `--port <1-65535>` or the server reports a fallback port on `stderr` at startup.
+   `--port <1-65535>` with no automatic port fallback.
 
 3. Import the repository's ready-to-use [mcp.json](mcp.json) into an MCP client that accepts
    `mcpServers` JSON configuration. If the client does not support file import, add the same server
@@ -63,7 +63,7 @@ and limits.
    ```
 
 Call `get_server_info` without arguments to find this instance's actual `bridge.port`, even before
-the plugin connects. Enter that port in Figma Bridge when several clients use different ports.
+the plugin connects. Clients using the same port share this backend and its Figma connections.
 After the plugin connects, call `list_figma_connections` and pass the returned `connection_id` to
 document-specific tools.
 
@@ -127,3 +127,12 @@ The server and synthetic bridge tests run locally. The full scenario requires a 
 check: import the development plugin, connect the bridge, and run a tool against a real document.
 
 This project is not affiliated with Figma and is distributed under the [MIT License](LICENSE).
+
+## Shared backend lifecycle
+
+Clients using the same OS user, version and Bridge port share one backend. Ports are fixed;
+a bind conflict is an error. The backend exits after 60 seconds without clients, plugins or
+operations. Set `--idle-timeout-seconds` or `FIGMA_MCP_IDLE_TIMEOUT_SECONDS` (1–86400); CLI wins,
+and the first launcher selects the effective value. Backend failure preserves MCP sessions,
+but interrupted operations are never automatically replayed. Before updating, close clients
+and plugins and wait for idle shutdown.

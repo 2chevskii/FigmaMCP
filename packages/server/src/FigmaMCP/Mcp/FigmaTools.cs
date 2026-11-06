@@ -13,19 +13,18 @@ public sealed partial class FigmaTools
     private const string ConnectionNotFoundMessage =
         "No live Figma plugin connection exists for the supplied connection_id.";
 
-    private readonly PluginConnectionRegistry _registry;
+    private readonly FigmaMCP.Companion.ICompanionBackend _registry;
 
-    public FigmaTools(PluginConnectionRegistry registry) => _registry = registry;
+    public FigmaTools(FigmaMCP.Companion.ICompanionBackend registry) => _registry = registry;
 
     [McpServerTool(Name = "list_figma_connections", Title = "List Figma connections")]
     [Description(
         "Discover all currently connected Figma plugin invocations before document-specific work."
     )]
-    public object ListFigmaConnections() =>
+    public async Task<object> ListFigmaConnections(CancellationToken cancellationToken) =>
         new
         {
-            connections = _registry
-                .Snapshot()
+            connections = (await _registry.ListConnectionsAsync(cancellationToken))
                 .Select(connection => new
                 {
                     connection_id = connection.ConnectionId.ToString("D"),
@@ -86,7 +85,7 @@ public sealed partial class FigmaTools
             throw new BridgeRpcException("connection_not_found", ConnectionNotFoundMessage);
         }
 
-        var payload = await _registry.RequestAsync(
+        var payload = await _registry.InvokeAsync(
             id,
             method,
             BridgePayloadCodec.Encode(input),

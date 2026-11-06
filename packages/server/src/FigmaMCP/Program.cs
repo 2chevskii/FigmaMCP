@@ -1,5 +1,6 @@
 using FigmaMCP;
 using FigmaMCP.Bridge;
+using FigmaMCP.Companion;
 using FigmaMCP.Connections;
 using FigmaMCP.Diagnostics;
 using FigmaMCP.Mcp;
@@ -10,128 +11,158 @@ if (!ServerOptions.TryParse(args, out var parsedOptions, out var error))
     Console.Error.WriteLine(error);
     return 2;
 }
-
 var options = parsedOptions!;
-var port = options.IsPortExplicit ? options.Port : FindAvailablePort(options.Port);
-await using var app = BuildApplication(port);
-
 try
 {
-    await app.RunAsync();
+    if (options.Backend)
+        await RunBackendAsync(options);
+    else
+    {
+        await using var backend = new RemoteBackend(options);
+        await backend.StartAsync(CancellationToken.None);
+        var builder = Host.CreateApplicationBuilder();
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
+        builder.Services.AddSingleton<ICompanionBackend>(backend);
+        builder.Services.AddSingleton<IServerInfoSource>(backend);
+        builder
+            .Services.AddMcpServer(server =>
+            {
+                server.ServerInfo = new()
+                {
+                    Name = ProductInfo.Name,
+                    Version = ProductInfo.Version,
+                };
+                server.ServerInstructions =
+                    "Call get_server_info for the shared backend's Bridge address. Call list_figma_connections before document work and always pass the chosen live connection_id. Backend connection loss never automatically replays a document operation; inspect state before retrying uncertain mutations.";
+            })
+            .WithStdioServerTransport()
+            .WithTools<FigmaTools>()
+            .WithTools<ServerTools>();
+        using var app = builder.Build();
+        await app.RunAsync();
+    }
     return 0;
-}
-catch (IOException exception) when (IsAddressAlreadyInUse(exception))
-{
-    Console.Error.WriteLine($"Listener startup failure: {exception.Message}");
-    return 3;
 }
 catch (Exception exception)
 {
-    Console.Error.WriteLine($"Fatal startup failure: {exception.Message}");
-    return 1;
+    var code = exception is BridgeRpcException rpc ? rpc.Code : "backend_unavailable";
+    Console.Error.WriteLine($"{code}: {exception.Message}");
+    if (options.Backend)
+        await ReportAsync(
+            options,
+            new()
+            {
+                Type = "error",
+                Code = code,
+                Message = exception.Message,
+            }
+        );
+    return code == "bridge_port_in_use" ? 3 : 1;
 }
-
-static int FindAvailablePort(int startPort)
+static async Task ReportAsync(ServerOptions options, IpcMessage message)
 {
-    for (var port = startPort; port <= ushort.MaxValue; port++)
-    {
-        if (!IsPortAvailable(port))
-        {
-            continue;
-        }
-
-        if (port != startPort)
-        {
-            Console.Error.WriteLine($"Bridge port {startPort} is unavailable; using {port}.");
-        }
-
-        return port;
-    }
-
-    throw new IOException(
-        $"No loopback bridge ports are available from {startPort} through 65535."
-    );
-}
-
-static bool IsPortAvailable(int port)
-{
-    using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, port);
-
+    if (options.BootstrapPipe is null)
+        return;
     try
     {
-        listener.Start();
-        return true;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await using var channel = await IpcChannel.ConnectAsync(
+            options.BootstrapPipe,
+            timeout.Token
+        );
+        await channel.WriteAsync(message, timeout.Token);
     }
-    catch (System.Net.Sockets.SocketException)
-    {
-        return false;
-    }
+    catch (Exception e) when (e is IOException or OperationCanceledException) { }
 }
-
-static bool IsAddressAlreadyInUse(IOException exception)
+static async Task RunBackendAsync(ServerOptions options)
 {
-    for (Exception? current = exception; current is not null; current = current.InnerException)
-    {
-        if (
-            current is System.Net.Sockets.SocketException
-            {
-                SocketErrorCode: System.Net.Sockets.SocketError.AddressAlreadyInUse
-            }
-        )
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-WebApplication BuildApplication(int bridgePort)
-{
-    var validHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        $"127.0.0.1:{bridgePort}",
-        $"localhost:{bridgePort}",
-    };
-
+    BackendLauncher.DetachUnix();
+    using var ownership = await LifetimeLock.AcquireAsync(
+        InstanceIdentity.Name(options.Port) + "-lifetime"
+    );
+    var activity = new BackendActivity(options.IdleTimeoutSeconds);
+    using var startupActivity = activity.Enter();
+    using var logs = new BackendLogProvider();
     var builder = WebApplication.CreateSlimBuilder();
-    builder.WebHost.UseUrls($"http://127.0.0.1:{bridgePort}");
+    builder.WebHost.UseUrls($"http://127.0.0.1:{options.Port}");
     builder.Logging.ClearProviders();
-    builder.Logging.AddConsole(console => console.LogToStandardErrorThreshold = LogLevel.Trace);
+    builder.Logging.AddProvider(logs);
     builder.Services.AddSingleton<PluginConnectionRegistry>();
     builder.Services.AddSingleton<ServerInfoProvider>();
-    builder
-        .Services.AddMcpServer(server =>
-        {
-            server.ServerInfo = new() { Name = ProductInfo.Name, Version = ProductInfo.Version };
-            server.ServerInstructions =
-                "Call get_server_info to find this server's Bridge port and WebSocket URL, "
-                + "including when no plugin is connected. "
-                + "Call list_figma_connections before document-specific work. "
-                + "Always pass the chosen connection_id. Connection IDs identify live plugin "
-                + "invocations, not permanent Figma files. A missing connection means the plugin "
-                + "must be opened or reconnected.";
-        })
-        .WithStdioServerTransport()
-        .WithTools<FigmaTools>()
-        .WithTools<ServerTools>();
-
-    var app = builder.Build();
+    await using var app = builder.Build();
     app.UseWebSockets();
     app.Use(
         async (context, next) =>
         {
-            var invalidHost = !validHosts.Contains(context.Request.Host.Value ?? string.Empty);
-            if (invalidHost)
+            if (
+                context.Request.Host.Value != $"127.0.0.1:{options.Port}"
+                && !string.Equals(
+                    context.Request.Host.Value,
+                    $"localhost:{options.Port}",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                context.Response.StatusCode = 400;
                 return;
             }
-
-            await next(context);
+            IDisposable lease;
+            try
+            {
+                lease = activity.Enter();
+            }
+            catch (IOException)
+            {
+                context.Response.StatusCode = 503;
+                return;
+            }
+            using (lease)
+                await next(context);
         }
     );
-
     app.Map("/bridge", BridgeEndpoint.HandleAsync);
-    return app;
+    try
+    {
+        await app.StartAsync();
+    }
+    catch (IOException e)
+    {
+        throw new BridgeRpcException(
+            "bridge_port_in_use",
+            $"Unable to bind fixed Bridge port {options.Port}: {e.Message}"
+        );
+    }
+    using var stop = new CancellationTokenSource();
+    var server = new BackendServer(
+        options,
+        app.Services.GetRequiredService<PluginConnectionRegistry>(),
+        app.Services.GetRequiredService<ServerInfoProvider>(),
+        activity,
+        logs
+    );
+    var serving = server.RunAsync(stop.Token);
+    if (serving.IsCompleted)
+        await serving;
+    await ReportAsync(options, new() { Type = "ready" });
+    startupActivity.Dispose();
+    try
+    {
+        while (!app.Lifetime.ApplicationStopping.IsCancellationRequested && !activity.TryStop())
+        {
+            if (serving.IsCompleted)
+            {
+                await serving;
+                break;
+            }
+            await Task.Delay(100);
+        }
+    }
+    finally
+    {
+        await stop.CancelAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await app.StopAsync(timeout.Token);
+        await serving;
+    }
 }

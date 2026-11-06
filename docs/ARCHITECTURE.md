@@ -1,100 +1,89 @@
 ---
 title: Architecture
-description: Figma MCP transports, connection lifecycle, and security boundaries.
+description: Shared local backend, MCP sessions, connection lifecycle, and security boundaries.
 ---
 
 # Architecture
 
-## Purpose
+## Processes and transports
 
-The companion provides MCP access to Figma documents where the user has opened the Bridge plugin.
-All runtime state is local to the user's machine and held in memory.
-
-## Components and transports
+Each MCP client starts a frontend and exchanges MCP protocol messages over STDIO.
+Frontends for the same OS user and Bridge port share one automatically started backend.
 
 ```mermaid
-sequenceDiagram
-    participant Client as MCP client
-    participant Companion as Local MCP companion
-    participant Registry as Connection registry
-    participant Plugin as Figma Bridge plugin
-    participant API as Figma Plugin API
-
-    Client->>Companion: Start via MCP over STDIO
-    Plugin->>Companion: Open loopback WebSocket /bridge
-    Companion->>Registry: Validate hello and store connection_id
-    Companion-->>Plugin: hello_ack
-
-    Client->>Companion: list_figma_connections
-    Companion->>Registry: Read active connections
-    Registry-->>Companion: Available connection_id values
-    Companion-->>Client: Connection list
-
-    Client->>Companion: Document-specific tool with connection_id
-    Note over Companion: Queue the call and allocate request_id
-    Companion->>Plugin: MessagePack bridge request
-    Plugin->>API: Read or mutate the open document
-    API-->>Plugin: Operation result
-    Plugin-->>Companion: Bridge response with request_id
-    Companion-->>Client: Matched MCP result
-
-    Plugin->>Companion: WebSocket disconnect
-    Companion->>Registry: Remove connection and fail pending RPCs
+flowchart LR
+    A[MCP client A] <-->|STDIO| FA[Frontend A]
+    B[MCP client B] <-->|STDIO| FB[Frontend B]
+    FA <-->|Private named pipe| Backend
+    FB <-->|Private named pipe| Backend
+    Backend <-->|WebSocket /bridge| Plugin[Figma Bridge]
+    Plugin <--> API[Figma Plugin API]
 ```
 
-The process has two transport roles:
+The frontend owns MCP session initialization, schemas, request IDs, cancellation and
+result formatting. The backend owns the Bridge listener, in-memory plugin registry,
+pending RPCs and serialization per connection. The same executable implements both roles.
+See [ADR 0001](./decisions/0001-shared-companion) for the detailed decision.
 
-- STDIO serves MCP. `stdout` is reserved for MCP protocol messages, while logs and diagnostics go to
-  `stderr`.
-- The loopback WebSocket `/bridge` serves the Bridge plugin. It accepts only `127.0.0.1:<port>` and
-  `localhost:<port>` Host values.
+## Startup and connection lifecycle
 
-## Connection lifecycle
+1. A frontend discovers or starts the backend using a private named pipe and user-scoped,
+   cross-session startup/lifetime mutexes. The backend is detached from its launcher.
+2. The backend binds exactly 127.0.0.1:3846 by default, or the explicit --port value.
+   An occupied port produces an error; there is no automatic port fallback.
+3. Frontend/backend IPC requires identical product versions and IPC protocol versions.
+4. The plugin opens `ws://127.0.0.1:<port>/bridge` with figma-mcp-bridge.v2.
+5. The backend validates hello, registers connection_id and returns hello_ack.
+6. Every frontend sees the same list_figma_connections snapshot. Document tools require
+   an explicit live connection_id and route through the shared backend.
+7. On plugin disconnect, the registry removes the connection and fails pending RPCs.
 
-1. The MCP client starts the local companion and establishes a STDIO session.
-2. The plugin UI opens `ws://127.0.0.1:<bridge-port>/bridge` with the `figma-mcp-bridge.v2` subprotocol. The bridge port defaults to `3846` and can be set with the MCP server's `--port <1-65535>` argument.
-3. The plugin sends `hello` with a random `connection_id` and document context.
-4. The companion validates the message, stores the connection in the in-memory registry, and returns
-   `hello_ack`.
-5. The MCP client calls `list_figma_connections`, selects an active `connection_id`, and passes it to
-   every document-specific tool.
-6. The companion serializes calls into bridge requests and matches responses by `request_id`.
-7. On disconnect, the connection is removed and pending requests complete with a controlled error.
+A connection_id identifies a plugin invocation, not a persistent Figma file.
+Replacement uses compare-and-swap so a stale socket cannot remove its replacement.
 
-A `connection_id` identifies a plugin invocation rather than a persistent Figma file. A connection
-replacement uses compare-and-swap so a stale socket cannot remove the active replacement.
+## Lifetime and recovery
+
+The backend stops after 60 seconds without frontend sessions, plugin connections or
+dispatched operations. Configure --idle-timeout-seconds or FIGMA_MCP_IDLE_TIMEOUT_SECONDS
+(1..86400); CLI takes precedence. The first launcher sets the effective value for that
+backend lifetime. Later clients receive that value without changing it.
+
+Closing one frontend does not stop the backend. Its queued calls are canceled; already
+dispatched calls retain their per-connection gate until response, disconnect or deadline.
+Backend failure preserves frontend MCP sessions. Frontends reconnect or start a replacement;
+pending calls fail and are never automatically replayed. The plugin reconnects to the same
+port. Until then the registry is empty. A hung owner is reported unavailable, not killed.
+
+A canceled or interrupted mutation may have executed in Figma. Inspect document state
+before retrying. Neither rollback nor exactly-once execution is implied.
 
 ## Server diagnostics
 
-The read-only `get_server_info` MCP tool requires no plugin or `connection_id`. A singleton tied to
-the backend's listener and connection registry reports its instance UUID, process ID, product
-version, UTC process startup time, active connection count, and actual Bridge address. Calls wait
-for application startup and read Kestrel's bound address, so fallback ports are discoverable without
-shell access or startup logs. The fixed response excludes environment variables, credentials, and
-unrelated machine information; see the [tool reference](/TOOLS#server-information).
+get_server_info reports the backend's UUID, PID, product version, UTC startup time,
+active plugin count and bound Bridge address, even without a plugin. All attached
+frontends report the same identity. Its schema excludes environment, paths and credentials.
+Readiness uses Kestrel's bound address after application startup.
 
-## Bridge protocol
+Diagnostics go to frontend stderr through bounded IPC queues. MCP stdout contains only
+protocol messages. No persistent discovery state or diagnostic files are required.
 
-The bridge wire format has these properties:
+## Protocol and security boundaries
 
-- One MessagePack map per binary WebSocket frame.
-- The `figma-mcp-bridge.v2` subprotocol.
-- Envelope fields: `type`, `protocol_version`, `sent_at`, and, when required, `connection_id`,
-  `request_id`, `method`, `payload`, and `error`.
-- Lowercase canonical UUIDs and UTC ISO-8601 timestamps.
-- A 16 MiB bridge-message limit and a 12 MiB limit for base64 binary data.
-- An operation allowlist and structured payloads, with no JavaScript execution or arbitrary property
-  reflection.
+The Bridge remains one typed MessagePack map per binary WebSocket message with the
+figma-mcp-bridge.v2 subprotocol, canonical UUIDs, UTC timestamps and bounded payloads.
+Bridge messages are limited to 16 MiB; base64 binary data to 12 MiB. RPC has a 30-second
+deadline after dispatch. Existing dry_run and invocation-local idempotency keys remain.
 
-Requests for one connection run sequentially and have a 30-second deadline. Mutations can use
-`dry_run` and `idempotency_key`; the plugin retains invocation-local results so a repeated key does
-not repeat the write.
+IPC uses length-prefixed typed MessagePack over current-user-only named pipes, with
+independent request UUIDs per session and bounded admission. Windows elevated and
+non-elevated clients cannot share a pipe. There is no HTTP management endpoint.
 
-## State and security boundaries
+The Bridge remains loopback-only and validates Host, Origin and subprotocol. The plugin
+stores only its local port and sends no access token. No plugin changes are part of
+backend sharing. All connection and pending-request state remains in memory.
 
-The connection registry and pending requests live only in companion memory. Restarting the process
-requires the plugin to reconnect.
+## Updating
 
-The bridge is loopback-only. It validates Host, Origin, and WebSocket subprotocol values before
-accepting a connection. The plugin stores only the local bridge port and does not send an access token
-in the WebSocket URL or bridge envelopes.
+Exact informational versions must match. To update, close clients and plugins, wait
+for idle shutdown, then update and reopen. A running older version is never replaced
+automatically. A legacy server without IPC occupying the port must also be stopped.

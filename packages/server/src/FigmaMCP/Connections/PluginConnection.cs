@@ -81,6 +81,8 @@ public sealed class PluginConnection : IDisposable
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var deadline = new CancellationTokenSource(BridgeProtocol.RequestTimeout);
             var requestId = Guid.NewGuid();
             var completion = new TaskCompletionSource<ReadOnlyMemory<byte>>(
                 TaskCreationOptions.RunContinuationsAsynchronously
@@ -107,15 +109,18 @@ public sealed class PluginConnection : IDisposable
                         null,
                         DateTimeOffset.UtcNow
                     ),
-                    cancellationToken
+                    deadline.Token
                 );
 
                 return await completion.Task.WaitAsync(
                     BridgeProtocol.RequestTimeout,
-                    cancellationToken
+                    deadline.Token
                 );
             }
-            catch (TimeoutException)
+            catch (Exception exception)
+                when (exception is TimeoutException
+                    || exception is OperationCanceledException && deadline.IsCancellationRequested
+                )
             {
                 throw new BridgeRpcException(
                     "plugin_timeout",
@@ -161,13 +166,22 @@ public sealed class PluginConnection : IDisposable
     {
         if (_socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
         {
-            await _socket.CloseAsync(status, reason, cancellationToken);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(2));
+            try
+            {
+                await _socket.CloseAsync(status, reason, timeout.Token);
+            }
+            catch (Exception e) when (e is OperationCanceledException or WebSocketException)
+            {
+                _socket.Abort();
+            }
         }
     }
 
     public void Dispose()
     {
-        _operations.Dispose();
-        _send.Dispose();
+        // Pending and queued asynchronous operations may still release these gates.
+        // They own no native handles; let them be collected after those operations complete.
     }
 }

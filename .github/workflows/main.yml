@@ -150,6 +150,9 @@ jobs:
   server_test_build:
     name: Build MCP server unit tests
     needs: product_version
+    strategy:
+      matrix:
+        runtime: [linux-x64, win-x64, osx-arm64]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -162,16 +165,13 @@ jobs:
           global-json-file: global.json
 
       - name: Publish server tests
-        run: bash ./build.sh --target :server:publish-tests --configuration Release --runtime linux-x64
+        run: bash ./build.sh --target :server:publish-tests --configuration Release --runtime ${{ matrix.runtime }}
 
       - name: Upload server test executable
         uses: actions/upload-artifact@v7
         with:
-          name: figma-mcp-server-tests-linux-x64.${{ needs.product_version.outputs.version }}
-          path: |
-            artifacts/server-tests/linux-x64/FigmaMCP.Tests.Unit
-            artifacts/server-tests/linux-x64/FigmaMCP.Tests.Unit.pdb
-            artifacts/server-tests/linux-x64/FigmaMCP.pdb
+          name: figma-mcp-server-tests-${{ matrix.runtime }}.${{ needs.product_version.outputs.version }}
+          path: artifacts/server-tests/${{ matrix.runtime }}/
           if-no-files-found: error
 
   server_test:
@@ -179,16 +179,25 @@ jobs:
     needs:
       - product_version
       - server_test_build
-    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            runtime: linux-x64
+          - os: windows-2025
+            runtime: win-x64
+          - os: macos-15
+            runtime: osx-arm64
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Download server test executable
         uses: actions/download-artifact@v8
         with:
-          name: figma-mcp-server-tests-linux-x64.${{ needs.product_version.outputs.version }}
-          path: artifacts/server-tests/linux-x64
+          name: figma-mcp-server-tests-${{ matrix.runtime }}.${{ needs.product_version.outputs.version }}
+          path: artifacts/server-tests/${{ matrix.runtime }}
 
       - name: Test server
-        working-directory: artifacts/server-tests/linux-x64
+        working-directory: artifacts/server-tests/${{ matrix.runtime }}
         shell: pwsh
         run: |
           $resultsDirectory = Join-Path $env:GITHUB_WORKSPACE "artifacts/server-test-results"
@@ -207,30 +216,36 @@ jobs:
           "@
           New-Item -ItemType Directory -Force -Path $resultsDirectory | Out-Null
           [System.IO.File]::WriteAllText($coverageSettings, $coverageConfiguration)
-          chmod +x ./FigmaMCP.Tests.Unit
-          & ./FigmaMCP.Tests.Unit `
+          $testExecutable = if ($IsWindows) { "./FigmaMCP.Tests.Unit.exe" } else { "./FigmaMCP.Tests.Unit" }
+          if (-not $IsWindows) {
+            chmod +x ./FigmaMCP.Tests.Unit ./companion/FigmaMCP
+          }
+          $coverageArguments = @()
+          if ("${{ matrix.runtime }}" -eq "linux-x64") {
+            $coverageArguments = @("--coverage", "--coverage-settings", $coverageSettings, "--coverage-output-format", "cobertura", "--coverage-output", "coverage.cobertura.xml")
+          }
+          & $testExecutable `
             --results-directory $resultsDirectory `
             --report-trx `
             --report-trx-filename server.trx `
-            --coverage `
-            --coverage-settings $coverageSettings `
-            --coverage-output-format cobertura `
-            --coverage-output coverage.cobertura.xml
+            @coverageArguments
           $testExitCode = $LASTEXITCODE
           if ($testExitCode -ne 0) {
             exit $testExitCode
           }
 
-          [xml] $coverage = Get-Content -Raw -LiteralPath (Join-Path $resultsDirectory "coverage.cobertura.xml")
-          if ($null -eq $coverage.coverage.packages.package) {
-            throw "The server coverage report does not contain any packages."
+          if ("${{ matrix.runtime }}" -eq "linux-x64") {
+            [xml] $coverage = Get-Content -Raw -LiteralPath (Join-Path $resultsDirectory "coverage.cobertura.xml")
+            if ($null -eq $coverage.coverage.packages.package) {
+              throw "The server coverage report does not contain any packages."
+            }
           }
 
       - name: Upload server test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: server-test-results.${{ needs.product_version.outputs.version }}
+          name: server-test-results-${{ matrix.runtime }}.${{ needs.product_version.outputs.version }}
           path: artifacts/server-test-results
           if-no-files-found: warn
           retention-days: 14

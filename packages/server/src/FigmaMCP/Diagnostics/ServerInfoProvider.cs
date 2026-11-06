@@ -10,7 +10,7 @@ public sealed class ServerInfoProvider(
     IServer server,
     IHostApplicationLifetime lifetime,
     PluginConnectionRegistry registry
-)
+) : FigmaMCP.Companion.IServerInfoSource
 {
     private readonly string _instanceId = Guid.NewGuid().ToString("D");
     private readonly DateTimeOffset _startedAt = GetProcessStartTime();

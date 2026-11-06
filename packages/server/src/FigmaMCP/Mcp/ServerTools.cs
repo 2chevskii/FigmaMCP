@@ -5,7 +5,7 @@ using ModelContextProtocol.Server;
 namespace FigmaMCP.Mcp;
 
 [McpServerToolType]
-public sealed class ServerTools(ServerInfoProvider serverInfo)
+public sealed class ServerTools(FigmaMCP.Companion.IServerInfoSource serverInfo)
 {
     [McpServerTool(
         Name = "get_server_info",

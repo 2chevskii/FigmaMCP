@@ -30,34 +30,39 @@ features:
 ## Overview
 
 Figma MCP is a local companion for Figma documents with the Figma Bridge plugin open. An MCP client
-starts the .NET process and exchanges protocol messages with it over STDIO.
+starts a .NET frontend and exchanges protocol messages with it over STDIO. Frontends share an
+automatically started backend per OS user and Bridge port; that backend owns Figma connections.
 
 ```mermaid
 sequenceDiagram
     participant Client as MCP client
-    participant Companion as Companion
+    participant Frontend as MCP frontend
+    participant Companion as Shared backend
     participant Registry as Connection registry
     participant Plugin as Bridge plugin
     participant Figma as Figma API
 
-    Client->>Companion: Start the child process and establish MCP over STDIO
+    Client->>Frontend: Start and establish MCP over STDIO
+    Frontend->>Companion: Discover or start backend; connect over private IPC
     Plugin->>Companion: Open the loopback WebSocket using figma-mcp-bridge.v2
     Companion->>Registry: Validate the hello message and register connection_id
     Companion-->>Plugin: Confirm registration with hello_ack
-    Client->>Companion: Call a document tool with the selected connection_id
+    Client->>Frontend: Call a document tool with the selected connection_id
+    Frontend->>Companion: Forward operation over private IPC
     Companion->>Registry: Resolve the live connection and allocate request_id
     Registry-->>Companion: Return the active plugin connection
     Companion->>Plugin: Send a bounded MessagePack bridge request
     Plugin->>Figma: Read or mutate the active Figma document
     Figma-->>Plugin: Return the operation result
     Plugin-->>Companion: Send the MessagePack response with request_id
-    Companion-->>Client: Return the matched MCP result over stdout
+    Companion-->>Frontend: Return operation result
+    Frontend-->>Client: Return the matched MCP result over stdout
 ```
 
-The companion has two transport roles:
+The companion separates transport ownership:
 
-- STDIO serves MCP. Protocol messages use `stdin` and `stdout`; diagnostics use `stderr`.
-- The loopback WebSocket endpoint at `/bridge` serves the Figma Bridge plugin.
+- Frontend STDIO serves MCP. Protocol messages use `stdin` and `stdout`; diagnostics use `stderr`.
+- The shared backend loopback WebSocket endpoint at `/bridge` serves the Figma Bridge plugin.
 
 The server, plugin, and bridge use explicit typed contracts. Document-specific MCP tools receive a
 live `connection_id`, and bridge operations use bounded payloads, a 30-second deadline, and
@@ -66,8 +71,8 @@ idempotent mutation keys where applicable.
 ## Install and connect
 
 Install the companion and Bridge plugin, then connect your MCP client using the
-[installation guide](/INSTALLATION). The client starts the companion over STDIO, and the plugin
-connects to its local Bridge endpoint.
+[installation guide](/INSTALLATION). The client starts its frontend over STDIO, and the plugin
+connects to the shared backend Bridge endpoint.
 
 ## Documentation map
 

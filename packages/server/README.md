@@ -39,7 +39,7 @@ Configure the client to start the installed tool:
 ```
 
 Open the Bridge plugin in the Figma document you want to use. The plugin connects to
-`127.0.0.1:3846` by default. If the server selects a fallback port or is started with
+`127.0.0.1:3846` by default. If the server is started with
 `--port <1-65535>`, enter that port in the plugin.
 
 Call `get_server_info` without arguments to find this instance's actual `bridge.port`, even with no
@@ -62,3 +62,12 @@ dotnet tool uninstall --global FigmaMCP
 
 FigmaMCP is not affiliated with Figma. The project is distributed under the
 [MIT License](https://github.com/2chevskii/FigmaMCP/blob/master/LICENSE).
+
+## Shared backend lifecycle
+
+Clients using the same OS user, version and Bridge port share one backend. Ports are fixed;
+a bind conflict is an error. The backend exits after 60 seconds without clients, plugins or
+operations. Set `--idle-timeout-seconds` or `FIGMA_MCP_IDLE_TIMEOUT_SECONDS` (1–86400); CLI wins,
+and the first launcher selects the effective value. Backend failure preserves MCP sessions,
+but interrupted operations are never automatically replayed. Before updating, close clients
+and plugins and wait for idle shutdown.
