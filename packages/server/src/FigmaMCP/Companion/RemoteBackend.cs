@@ -272,7 +272,7 @@ internal sealed class RemoteBackend(ServerOptions options) : ICompanionBackend, 
                     if (InstanceIdentity.Acquire(lifetime, 0))
                     {
                         lifetime.ReleaseMutex();
-                        var bootstrap = name + "-boot-" + Guid.NewGuid().ToString("N");
+                        var bootstrap = "fm-" + Guid.NewGuid().ToString("N");
                         using var pipe = IpcChannel.Listen(bootstrap);
                         BackendLauncher.Launch(
                             options with
