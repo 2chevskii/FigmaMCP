@@ -52,7 +52,8 @@ existing code.
 
 - Before changing files, inspect `git status --short`: the worktree can contain unrelated user edits.
   Do not revert or overwrite them without explicit permission.
-- Use .NET 10 and central package management for server projects; use the existing npm scripts for the plugin.
+- Use the .NET SDK pinned in `global.json` to build the server, which targets .NET 10
+  and uses central package management. Use the existing npm scripts for the plugin.
 - After a substantive change, run appropriate builds and tests. Documentation changes require at least
   `git diff --check`.
 - When a change affects a transport, the bridge protocol, MCP tools, or the plugin, consult the
