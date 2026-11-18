@@ -135,8 +135,7 @@ internal sealed class RemoteBackend(ServerOptions options) : ICompanionBackend, 
         CancellationToken cancellationToken
     )
     {
-        var session =
-            Volatile.Read(ref _session)
+        var session = Volatile.Read(ref _session)
             ?? throw new BridgeRpcException(
                 _unavailableCode,
                 "Shared backend is unavailable; recovery runs automatically."

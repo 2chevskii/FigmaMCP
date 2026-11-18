@@ -91,9 +91,9 @@ public sealed class IpcChannel(Stream stream) : IAsyncDisposable
         var bytes = new byte[length];
         await stream.ReadExactlyAsync(bytes, cancellationToken);
         return MessagePackSerializer.Deserialize<IpcMessage>(
-                bytes,
-                BridgeProtocol.SerializerOptions
-            ) ?? throw new IOException("Null IPC message.");
+            bytes,
+            BridgeProtocol.SerializerOptions
+        ) ?? throw new IOException("Null IPC message.");
     }
 
     public static NamedPipeServerStream Listen(string name) =>

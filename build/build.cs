@@ -1,6 +1,6 @@
 #!/usr/bin/env dotnet
 
-#:sdk Cake.Sdk@6.2.0
+#:sdk Cake.Sdk
 #:package Cake.Npm@5.1.0
 #:package Octokit@14.0.0
 #:property IncludeAdditionalFiles=./*.cs
