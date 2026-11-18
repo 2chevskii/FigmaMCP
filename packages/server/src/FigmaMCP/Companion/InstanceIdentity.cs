@@ -18,12 +18,26 @@ internal static partial class InstanceIdentity
             + port;
     }
 
-    public static Mutex CreateMutex(string name) =>
-        new(
-            false,
-            name,
-            new NamedWaitHandleOptions { CurrentUserOnly = true, CurrentSessionOnly = false }
-        );
+    public static Mutex CreateMutex(string name)
+    {
+        var options = new NamedWaitHandleOptions
+        {
+            CurrentUserOnly = true,
+            CurrentSessionOnly = false,
+        };
+        for (var retries = 0; ; retries++)
+        {
+            try
+            {
+                return new Mutex(false, name, options);
+            }
+            catch (IOException) when (OperatingSystem.IsMacOS() && retries < 3)
+            {
+                // macOS can fail transiently while .NET creates its shared-memory directory.
+                Thread.Sleep(50);
+            }
+        }
+    }
 
     public static bool Acquire(Mutex mutex, int milliseconds)
     {

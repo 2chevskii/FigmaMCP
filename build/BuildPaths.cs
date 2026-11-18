@@ -1,5 +1,3 @@
-#:sdk Cake.Sdk@6.2.0
-
 record BuildPaths(
     DirectoryPath RootDirectory,
     DirectoryPath ArtifactsDirectory,

@@ -15,8 +15,8 @@ internal static partial class BackendLauncher
     )]
     public static void Launch(ServerOptions options, string bootstrap)
     {
-        var executable =
-            Environment.ProcessPath ?? throw new IOException("Cannot resolve the executable.");
+        var executable = Environment.ProcessPath
+            ?? throw new IOException("Cannot resolve the executable.");
         var args = new List<string>();
         if (
             Path.GetFileNameWithoutExtension(executable)
@@ -44,8 +44,8 @@ internal static partial class BackendLauncher
         start.ArgumentList.Add(executable);
         foreach (var arg in args)
             start.ArgumentList.Add(arg);
-        using var launcher =
-            Process.Start(start) ?? throw new IOException("Unable to start backend launcher.");
+        using var launcher = Process.Start(start)
+            ?? throw new IOException("Unable to start backend launcher.");
         if (!launcher.WaitForExit(5000) || launcher.ExitCode != 0)
             throw new IOException("Backend launcher failed.");
     }
@@ -87,11 +87,8 @@ internal static partial class BackendLauncher
 
     private static string QuoteWindows(string value) =>
         "\""
-        + System.Text.RegularExpressions.Regex.Replace(
-            value,
-            "(\\\\*)(\"|$)",
-            m =>
-                new string('\\', m.Groups[1].Length * 2) + (m.Groups[2].Value == "\"" ? "\\\"" : "")
+        + System.Text.RegularExpressions.Regex.Replace(value, "(\\\\*)(\"|$)", m =>
+            new string('\\', m.Groups[1].Length * 2) + (m.Groups[2].Value == "\"" ? "\\\"" : "")
         )
         + "\"";
 
