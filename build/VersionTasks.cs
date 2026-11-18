@@ -114,9 +114,10 @@ static class VersionTasks
                 workingDirectory = temporaryRepository;
                 configFile = temporaryRepository.CombineWithFilePath("GitVersion.yml");
                 context.CopyFile(paths.GitVersionConfiguration, configFile);
+                context.EnsureDirectoryExists(temporaryRepository.Combine(".config"));
                 context.CopyFile(
-                    paths.RootDirectory.CombineWithFilePath("dotnet-tools.json"),
-                    temporaryRepository.CombineWithFilePath("dotnet-tools.json")
+                    paths.RootDirectory.CombineWithFilePath(".config/dotnet-tools.json"),
+                    temporaryRepository.CombineWithFilePath(".config/dotnet-tools.json")
                 );
                 RunProcess(context, workingDirectory, "dotnet", "tool", "restore");
             }
