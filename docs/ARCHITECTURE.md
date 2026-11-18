@@ -28,7 +28,8 @@ See [ADR 0001](./decisions/0001-shared-companion) for the detailed decision.
 ## Startup and connection lifecycle
 
 1. A frontend discovers or starts the backend using a private named pipe and user-scoped,
-   cross-session startup/lifetime mutexes. The backend is detached from its launcher.
+   cross-session startup/lifetime mutexes. On macOS, mutex creation retries transient IO failures.
+   The backend is detached from its launcher.
 2. The backend binds exactly 127.0.0.1:3846 by default, or the explicit --port value.
    An occupied port produces an error; there is no automatic port fallback.
 3. Frontend/backend IPC requires identical product versions and IPC protocol versions.
