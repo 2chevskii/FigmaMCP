@@ -66,8 +66,7 @@ onMounted(async () => {
       }}
       <a href="https://github.com/2chevskii/FigmaMCP/releases/latest">{{
         isRussian ? "страницу последнего выпуска" : "latest release page"
-      }}</a
-      >.
+      }}</a>.
     </p>
     <p v-else>
       {{
