@@ -383,8 +383,21 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          name: server-test-results.${{ needs.product_version.outputs.version }}
+          pattern: server-test-results-*.${{ needs.product_version.outputs.version }}
           path: artifacts/summary/server
+
+      - name: Verify server test reports
+        if: ${{ needs.server_test.result == 'success' }}
+        shell: pwsh
+        env:
+          PRODUCT_VERSION: ${{ needs.product_version.outputs.version }}
+        run: |
+          foreach ($runtime in @("linux-x64", "win-x64", "osx-arm64")) {
+            $report = "artifacts/summary/server/server-test-results-$runtime.$env:PRODUCT_VERSION/server.trx"
+            if (-not (Test-Path -LiteralPath $report -PathType Leaf)) {
+              throw "Missing server test report for $runtime."
+            }
+          }
 
       - name: Download plugin test results
         continue-on-error: true

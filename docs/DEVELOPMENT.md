@@ -120,7 +120,8 @@ targets require GitHub Actions credentials and should normally run only in their
 
 ## Companion
 
-The server uses .NET 10 and central package management. The root build exposes its usual targets:
+The server targets .NET 10 and uses central package management. Install the SDK
+pinned in `global.json` before running the build targets:
 
 ```powershell
 ./build.ps1 --target :server:format
